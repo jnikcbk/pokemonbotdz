@@ -10,9 +10,11 @@ const client = new Client({
 });
 
 // Dữ liệu lưu tạm (Sẽ mất khi bot reset trên Railway)
-let pkAuto = {}; // Lưu trạng thái auto của từng kênh
-let activeSpawns = {}; // Slot Pokemon riêng như đã làm
-let db = {};
+// Dữ liệu lưu tạm
+let pkAuto = {}; 
+let db = {}; 
+let currentGlobalPokemon = null; // CẦN THÊM DÒNG NÀY
+const PREFIX = "!";
 const PREFIX = "!";
 
 client.on('ready', () => {
@@ -186,43 +188,34 @@ if (command === 'pkauto') {
             message.channel.send({ embeds: [battleEmbed] });
         });
     }
-   // ================= [ LỆNH !BAT CHO PKAUTO ] =================
-    if (command === 'bat' || command === 'batpokemon') {
-        // Kiểm tra xem có Pokemon nào đang xuất hiện không
-        if (!currentGlobalPokemon) {
-            return message.reply("❌ Hết con để bắt rồi! Đợi đợt spawn tiếp theo nhé.");
-        }
+   if (command === 'bat' || command === 'batpokemon') {
+        if (!currentGlobalPokemon) return message.reply("❌ Hết con để bắt rồi! Đợi đợt spawn tiếp theo nhé.");
 
         const guestName = args[0]?.toLowerCase();
         
-        // So khớp tên người dùng nhập với tên Pokemon đang hiện
         if (guestName === currentGlobalPokemon.name) {
-            // 1. Khởi tạo dữ liệu người chơi nếu chưa có
+            // Đảm bảo db[userId] luôn tồn tại
             if (!db[userId]) {
                 db[userId] = { money: 5000, hop: [], catchCount: 0 };
             }
 
-            // 2. Đưa Pokemon vào Hộp (Lưu cả tên và level để đi đấu !dau)
             db[userId].hop.push({
                 name: currentGlobalPokemon.name,
                 level: currentGlobalPokemon.level
             });
 
-            // 3. Cộng thưởng
             db[userId].money += 200;
             db[userId].catchCount += 1;
 
-            // 4. Xóa tin nhắn Spawn để kênh chat sạch sẽ
             if (currentGlobalPokemon.message) {
                 currentGlobalPokemon.message.delete().catch(() => {});
             }
 
-            // 5. Thông báo và Reset để chờ con tiếp theo
-            message.reply(`🎯 **${message.author.username}** nhanh tay quá! Đã bắt được **${currentGlobalPokemon.name.toUpperCase()}** (Lvl ${currentGlobalPokemon.level}) vào Hộp.`);
+            message.reply(`🎯 **${message.author.username}** đã bắt được **${currentGlobalPokemon.name.toUpperCase()}** (Lvl ${currentGlobalPokemon.level})!`);
             
-            currentGlobalPokemon = null; // Bắt xong là biến mất, người khác không bắt được nữa
+            currentGlobalPokemon = null; 
         } else {
-            message.reply("❌ Sai tên rồi, nhìn kỹ lại cái hình đi sếp!");
+            message.reply("❌ Sai tên rồi!");
         }
     }
     // ================= [ LỆNH !HOP / !CHECK - BẢN ĐẸP ] =================

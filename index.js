@@ -67,33 +67,36 @@ client.on('messageCreate', async message => {
 
         return message.reply({ embeds: [helpEmbed] });
     }
- // ================= [ LỆNH !PKAUTO - AUTO SPAWN 30S ] =================
+ // ================= [ LỆNH !PKAUTO - PHIÊN BẢN CHI TIẾT & SIÊU SẠCH ] =================
 if (command === 'pkauto') {
+    // Xóa tin nhắn lệnh !pkauto của người dùng để sạch kênh
+    message.delete().catch(() => {});
+
     const channelId = message.channel.id;
 
-    // Nếu đang bật thì tắt
     if (pkAuto[channelId]) {
         clearInterval(pkAuto[channelId]);
         delete pkAuto[channelId];
-        return message.reply({ embeds: [
+        return message.channel.send({ embeds: [
             new EmbedBuilder()
-                .setDescription("🛑 **HỆ THỐNG AUTO SPAWN ĐÃ DỪNG**")
-                .setColor('#ff0000')
-        ]});
+                .setTitle("🛰️ HỆ THỐNG GIÁM SÁT")
+                .setDescription("🛑 **CHẾ ĐỘ TỰ ĐỘNG SPAWN ĐÃ TẮT**")
+                .setColor('#ff4757')
+        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000)); // 5s sau tự xóa thông báo tắt
     }
 
-    // Thông báo bắt đầu
     const startEmbed = new EmbedBuilder()
-        .setTitle("🚀 KÍCH HOẠT CHẾ ĐỘ AUTO SPAWN")
-        .setDescription("Cứ mỗi **10 giây**, một Pokémon sẽ xuất hiện. Ai gõ `!bat [tên]` nhanh nhất sẽ sở hữu!")
-        .setColor('#2ecc71')
-        .setFooter({ text: "Gõ !pkauto lần nữa để tắt chế độ này" });
+        .setAuthor({ name: "HỆ THỐNG TỰ ĐỘNG", iconURL: "https://i.imgur.com/vHdfZfC.png" })
+        .setTitle("🚀 KÍCH HOẠT MÁY DÒ TÌM POKÉMON")
+        .setDescription("Cứ mỗi **10 giây**, một Pokémon sẽ xuất hiện.\n\n> **Lưu ý:** Hãy chuẩn bị sẵn lệnh `!bat`!")
+        .setColor('#2ed573')
+        .addFields({ name: "📡 Trạng thái", value: "🟢 Đang quét tìm tín hiệu...", inline: true })
+        .setFooter({ text: "Gõ !pkauto lần nữa để dừng" });
 
     message.channel.send({ embeds: [startEmbed] });
     
-    // Bắt đầu vòng lặp 30 giây
     pkAuto[channelId] = setInterval(async () => {
-        // 1. Xóa tin nhắn Pokemon cũ nếu chưa ai bắt để sạch kênh chat
+        // 1. Xóa con cũ nếu chưa ai kịp bắt
         if (currentGlobalPokemon && currentGlobalPokemon.message) {
             currentGlobalPokemon.message.delete().catch(() => {});
         }
@@ -105,28 +108,32 @@ if (command === 'pkauto') {
             const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
             const pokeName = res.data.name;
             const pokeType = res.data.types[0].type.name;
+            
+            // Chỉ số ảo cho đẹp (tỉ lệ theo level)
+            const hp = 50 + Math.floor(randomLevel * 1.5);
+            const atk = 10 + Math.floor(randomLevel * 0.8);
 
-            // Bảng màu theo hệ cho chuyên nghiệp
             const typeColors = {
-                fire: '#ff421c', water: '#1c93ff', grass: '#1cff42', 
-                electric: '#ffee1c', psychic: '#ff1cb3', ice: '#1cffff'
+                fire: '#ff4757', water: '#3742fa', grass: '#2ed573', 
+                electric: '#eccc68', psychic: '#ef5777', ice: '#7efff5',
+                dark: '#2f3542', dragon: '#ffa502', ghost: '#a55eea'
             };
 
             const autoEmbed = new EmbedBuilder()
-                .setAuthor({ name: "⚡ POKÉMON HOANG DÃ XUẤT HIỆN!", iconURL: "https://i.imgur.com/399vA7N.png" })
-                .setTitle(`✨ ${pokeName.toUpperCase()} ✨`)
-                .setColor(typeColors[pokeType] || '#ffcb05')
+                .setAuthor({ name: "⚡ POKÉMON HOANG DÃ!", iconURL: "https://i.imgur.com/399vA7N.png" })
+                .setTitle(`🔍 PHÁT HIỆN: ${pokeName.toUpperCase()}`)
+                .setColor(typeColors[pokeType] || '#ced6e0')
                 .addFields(
                     { name: '🆙 Cấp độ', value: `\`Lvl ${randomLevel}\``, inline: true },
-                    { name: '🧬 Hệ', value: `\`${pokeType.toUpperCase()}\``, inline: true }
+                    { name: '🧬 Hệ', value: `\`${pokeType.toUpperCase()}\``, inline: true },
+                    { name: '📊 Chỉ số', value: `❤️ HP: \`${hp}\` | ⚔️ ATK: \`${atk}\``, inline: false }
                 )
                 .setImage(res.data.sprites.other['official-artwork'].front_default)
-                .setFooter({ text: "Nhanh tay gõ !bat [tên] để thu phục!" })
+                .setFooter({ text: `Target: ${pokeName} | Gõ !bat để bắt!` })
                 .setTimestamp();
 
             const sMsg = await message.channel.send({ embeds: [autoEmbed] });
 
-            // Lưu thông tin con Pokemon hiện tại vào biến toàn cục
             currentGlobalPokemon = { 
                 name: pokeName.toLowerCase(), 
                 level: randomLevel, 
@@ -134,9 +141,9 @@ if (command === 'pkauto') {
             };
 
         } catch (e) { 
-            console.log("Lỗi hệ thống Spawn: " + e.message); 
+            console.log("Lỗi quét Pokemon: " + e.message); 
         }
-    }, 10000); // 30000ms = 30 giây
+    }, 10000); // 10 giây
 }
     if (command === 'dau' || command === 'pvp') {
         const target = message.mentions.users.first();
@@ -189,35 +196,37 @@ if (command === 'pkauto') {
         });
     }
    if (command === 'bat' || command === 'batpokemon') {
-        if (!currentGlobalPokemon) return message.reply("❌ Hết con để bắt rồi! Đợi đợt spawn tiếp theo nhé.");
+    // Xóa lệnh gõ !bat của người dùng ngay lập tức
+    message.delete().catch(() => {});
 
-        const guestName = args[0]?.toLowerCase();
-        
-        if (guestName === currentGlobalPokemon.name) {
-            // Đảm bảo db[userId] luôn tồn tại
-            if (!db[userId]) {
-                db[userId] = { money: 5000, hop: [], catchCount: 0 };
-            }
+    if (!currentGlobalPokemon) return; // Không có con nào thì im lặng xóa chat là xong
 
-            db[userId].hop.push({
-                name: currentGlobalPokemon.name,
-                level: currentGlobalPokemon.level
-            });
+    const guestName = args[0]?.toLowerCase();
+    
+    if (guestName === currentGlobalPokemon.name) {
+        if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
-            db[userId].money += 200;
-            db[userId].catchCount += 1;
+        db[userId].hop.push({
+            name: currentGlobalPokemon.name,
+            level: currentGlobalPokemon.level
+        });
 
-            if (currentGlobalPokemon.message) {
-                currentGlobalPokemon.message.delete().catch(() => {});
-            }
+        db[userId].money += 200;
+        db[userId].catchCount += 1;
 
-            message.reply(`🎯 **${message.author.username}** đã bắt được **${currentGlobalPokemon.name.toUpperCase()}** (Lvl ${currentGlobalPokemon.level})!`);
-            
-            currentGlobalPokemon = null; 
-        } else {
-            message.reply("❌ Sai tên rồi!");
+        // Xóa tin nhắn spawn
+        if (currentGlobalPokemon.message) {
+            currentGlobalPokemon.message.delete().catch(() => {});
         }
+
+        const successMsg = await message.channel.send(`✨ **${message.author.username}** đã thu phục **${currentGlobalPokemon.name.toUpperCase()}** thành công!`);
+        
+        // 3 giây sau xóa thông báo thành công cho sạch kênh
+        setTimeout(() => successMsg.delete().catch(() => {}), 3000);
+
+        currentGlobalPokemon = null; 
     }
+}
     // ================= [ LỆNH !HOP / !CHECK - BẢN ĐẸP ] =================
     if (command === 'hop' || command === 'check') {
         const target = message.mentions.users.first() || message.author;

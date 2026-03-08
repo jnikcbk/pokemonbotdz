@@ -649,26 +649,47 @@ if (command === 'pkauto') {
     if (command === 'ev') {
         const name = args[0]?.toLowerCase();
         const evolutionMap = {
-            "pichu": "pikachu",
-            "pikachu": "raichu",
-            "bulbasaur": "ivysaur",
-            "ivysaur": "venusaur",
-            "charmander": "charmeleon",
-            "charmeleon": "charizard",
-            "squirtle": "wartortle",
-            "wartortle": "blastoise"
+            "pichu": "pikachu", "pikachu": "raichu",
+            "bulbasaur": "ivysaur", "ivysaur": "venusaur",
+            "charmander": "charmeleon", "charmeleon": "charizard",
+            "squirtle": "wartortle", "wartortle": "blastoise",
+            "caterpie": "metapod", "metapod": "butterfree",
+            "weedle": "kakuna", "kakuna": "beedrill",
+            "pidgey": "pidgeotto", "pidgeotto": "pidgeot",
+            "rattata": "raticate", "spearow": "fearow",
+            "ekans": "arbok", "sandshrew": "sandslash"
         };
 
+        // 1. Kiểm tra túi đồ (Phải có db[userId] trước)
+        if (!db[userId] || !db[userId].hop) return message.reply("Ông chưa có Pokémon nào!");
+
         const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === name);
-        if (idx === -1) return message.reply("Con này không có trong Hộp!");
+        if (idx === -1) return message.reply(`❌ Con **${name?.toUpperCase() || "này"}** không có trong Hộp!`);
 
         const nextForm = evolutionMap[name];
-        if (!nextForm) return message.reply("Con này không thể tiến hóa hoặc chưa cập nhật!");
+        if (!nextForm) return message.reply("⚠️ Con này không thể tiến hóa hoặc chưa cập nhật chuỗi tiến hóa!");
 
-        if (db[userId].hop[idx].level < 30) return message.reply(`Cần đạt \`Lvl 30\` mới tiến hóa được! (Hiện tại: ${db[userId].hop[idx].level})`);
+        // 2. Kiểm tra Level
+        if (db[userId].hop[idx].level < 30) {
+            return message.reply(`🚫 Cần đạt \`Lvl 30\` mới tiến hóa được! (Hiện tại: Lvl ${db[userId].hop[idx].level})`);
+        }
 
+        // 3. THỰC HIỆN ĐỔI TÊN
+        const oldName = name.toUpperCase();
         db[userId].hop[idx].name = nextForm;
-        message.reply(`✨ Chúc mừng! **${name.toUpperCase()}** của ông đã tiến hóa thành **${nextForm.toUpperCase()}**!`);
+
+        // 4. KHÔNG ĐƯỢC QUÊN DÒNG NÀY - LƯU VÀO FILE NGAY!
+        saveDB(); 
+
+        // 5. HIỆN THÔNG BÁO "IB"
+        const evoEmbed = new EmbedBuilder()
+            .setTitle('🧬 TIẾN HÓA THÀNH CÔNG!')
+            .setColor('#9b59b6')
+            .setDescription(`**${oldName}** của ông đã chuyển hóa thành **${nextForm.toUpperCase()}**!`)
+            .setFooter({ text: "Dữ liệu đã được đồng bộ vào hệ thống." })
+            .setTimestamp();
+
+        return message.reply({ embeds: [evoEmbed] });
     }
 });
 

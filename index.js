@@ -37,32 +37,36 @@ client.on('messageCreate', async message => {
         };
     }
 
-    // ================= [ LỆNH !PHELP - FULL OPTION ] =================
+    // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION ] =================
     if (command === 'phelp') {
         const helpEmbed = new EmbedBuilder()
-            .setTitle('🎮 POKÉMON BOT - HƯỚNG DẪN CHI TIẾT')
-            .setColor('#ff0000')
+            .setTitle('🎮 POKÉMON BOT - CẨM NANG TOÀN TẬP')
+            .setColor('#e74c3c')
             .setThumbnail('https://i.imgur.com/vHdfZfC.png')
-            .setDescription('Chào mừng ông đến với thế giới Pokémon! Dưới đây là bộ lệnh đầy đủ để trở thành bậc thầy:')
+            .setDescription('Chào mừng ông đến với thế giới Pokémon! Dưới đây là danh sách lệnh đã được nâng cấp:')
             .addFields(
                 { 
-                    name: '🐾 Săn Bắt & Thu Phục', 
-                    value: '`!pkauto`: Gọi Pokemon xuất hiện.\n`!bat [tên]`: Đoán tên để bắt Pokemon.' 
+                    name: '🐾 SĂN BẮT & TRA CỨU', 
+                    value: '`!pkauto`: Bật/Tắt tự động xuất hiện Pokémon.\n`!bat [tên]`: Thu phục Pokémon đang xuất hiện.\n`!pokedex [trang]`: Xem danh sách ID và tên Pokémon.' 
                 },
                 { 
-                    name: '📦 Quản Lý Hộp (Storage)', 
-                    value: '`!hop`: Xem Pokemon và tiền cá nhân.\n`!check @user`: Xem Hộp của người khác.\n`!phongsinh [tên]`: Thả Pokemon để lấy `100 xu`.' 
+                    name: '📦 QUẢN LÝ & PHÁT TRIỂN', 
+                    value: '`!hop`: Kiểm tra túi đồ và số dư.\n`!train [tên]`: Huấn luyện tăng cấp (Phí tăng theo Level).\n`!ev [tên]`: Tiến hóa khi đạt cấp độ yêu cầu.\n`!phongsinh [tên]`: Thả Pokémon nhận lại xu.' 
                 },
                 { 
-                    name: '📈 Phát Triển Pokémon', 
-                    value: '`!train [tên]`: Tốn `500 xu` để tăng cấp (Level).\n`!ev [tên]`: Tiến hóa Pokemon khi đủ cấp (Lvl 30+).' 
+                    name: '⚔️ ĐẤU TRƯỜNG & BXH', 
+                    value: '`!dau @user [tên]`: Thách đấu PvP cực kịch tính.\n`!toppk`: Bảng xếp hạng những cao thủ săn bắt hàng đầu.\n`!daily`: Điểm danh nhận quà hàng ngày.' 
                 },
                 { 
-                    name: '🤝 Cộng Đồng & Kinh Tế', 
-                    value: '`!trade @user [tên_mình] [tên_họ]`: Trao đổi đồ.\n`!toppk`: Bảng xếp hạng đại gia Pokemon.\n`!daily`: Nhận `1,000 xu` quà mỗi ngày.' 
+                    name: '🛡️ QUYỀN HẠN ADMIN (QUẢN TRỊ)', 
+                    value: '`!addpk @user [Tên/ID] [Lvl]`: Tặng Pokémon cho người chơi.\n`!addxu @user [số_tiền]`: Cấp thêm xu vàng vào tài khoản.' 
                 }
             )
-            .setFooter({ text: 'Mẹo: Hãy chăm chỉ !train để đạt cấp độ tiến hóa cao hơn!', iconURL: message.author.displayAvatarURL() })
+            .addFields({ 
+                name: '💡 Mẹo Nhỏ', 
+                value: 'Sử dụng `!pokedex` để biết ID Pokémon, sau đó Admin có thể dùng ID đó để `!addpk` cực nhanh!' 
+            })
+            .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
 
         return message.reply({ embeds: [helpEmbed] });
@@ -82,7 +86,7 @@ if (command === 'pkauto') {
                 .setTitle("🛰️ HỆ THỐNG GIÁM SÁT")
                 .setDescription("🛑 **CHẾ ĐỘ TỰ ĐỘNG SPAWN ĐÃ TẮT**")
                 .setColor('#ff4757')
-        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 10000)); // 5s sau tự xóa thông báo tắt
+        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 20000)); // 5s sau tự xóa thông báo tắt
     }
 
     const startEmbed = new EmbedBuilder()
@@ -145,39 +149,64 @@ if (command === 'pkauto') {
         }
     }, 20000); // 10 giây
 }
+    // ================= [ LỆNH !DAU - CHI TIẾT CỰC HẠN ] =================
     if (command === 'dau' || command === 'pvp') {
         const target = message.mentions.users.first();
         const myPokeName = args[1]?.toLowerCase();
 
         if (!target || target.id === userId) return message.reply("Tag đối thủ để thách đấu!");
-        if (!myPokeName) return message.reply("Cú pháp: `!dau @user [tên_pokemon_của_ông]`");
+        if (!myPokeName) return message.reply("Cú pháp: `!dau @user [tên_pokemon]`");
 
-        // Tìm Pokemon trong Hộp của mình
         const myIdx = db[userId].hop.findIndex(p => p.name.toLowerCase() === myPokeName);
         if (myIdx === -1) return message.reply(`Ông không có ${myPokeName} trong Hộp!`);
         
         const myPoke = db[userId].hop[myIdx];
 
-        message.channel.send(`⚔️ **${message.author.username}** thách đấu **${target.username}** bằng **${myPoke.name.toUpperCase()}** (Lvl ${myPoke.level})!\n👉 <@${target.id}> gõ \`dongy [tên_pokemon_của_ông]\` để tiếp chiêu!`);
+        const inviteEmbed = new EmbedBuilder()
+            .setTitle('⚔️ LỜI THÁCH ĐẤU TỪ CAO THỦ')
+            .setColor('#f1c40f')
+            .setThumbnail(message.author.displayAvatarURL())
+            .setDescription(`**${message.author.username}** vung PokeBall chọn **${myPoke.name.toUpperCase()}**!\n\n> <@${target.id}>, ông có dám tiếp chiêu không?`)
+            .addFields(
+                { name: '📊 Thông số đối thủ', value: `\`Lvl: ${myPoke.level}\` | \`Hệ: ${myPoke.type || 'Thường'}\`` },
+                { name: '📝 Cách trả lời', value: 'Gõ `dongy [tên_pokemon]` để ra trận!' }
+            )
+            .setFooter({ text: "Thời gian chờ: 30 giây" });
+
+        message.channel.send({ content: `<@${target.id}>`, embeds: [inviteEmbed] });
 
         const filter = m => m.author.id === target.id && m.content.toLowerCase().startsWith('dongy');
         const collector = message.channel.createMessageCollector({ filter, time: 30000, max: 1 });
 
-        collector.on('collect', m => {
+        collector.on('collect', async m => {
             const opponentPokeName = m.content.split(' ')[1]?.toLowerCase();
-            if (!db[target.id]) return m.reply("Ông chưa có Pokemon nào!");
+            if (!db[target.id]) return m.reply("Ông chưa có dữ liệu Pokémon!");
             
             const targetIdx = db[target.id].hop.findIndex(p => p.name.toLowerCase() === opponentPokeName);
-            if (targetIdx === -1) return m.reply(`Ông không có con ${opponentPokeName} nào cả!`);
+            if (targetIdx === -1) return m.reply(`Ông không có con **${opponentPokeName?.toUpperCase()}** này!`);
 
             const theirPoke = db[target.id].hop[targetIdx];
 
-            // Logic chiến đấu (Ai level cao hơn + 1 chút may mắn sẽ thắng)
-            const myPower = myPoke.level + Math.floor(Math.random() * 20);
-            const theirPower = theirPoke.level + Math.floor(Math.random() * 20);
+            // --- TÍNH TOÁN CHỈ SỐ CHI TIẾT ---
+            const myHP = 100 + (myPoke.level * 5);
+            const theirHP = 100 + (theirPoke.level * 5);
+            
+            // Tính toán may mắn và sát thương
+            const myLuck = Math.floor(Math.random() * 20);
+            const theirLuck = Math.floor(Math.random() * 20);
+            
+            const myTotalPower = myPoke.level + myLuck;
+            const theirTotalPower = theirPoke.level + theirLuck;
 
-            let winner, loser, winMoney = 500;
-            if (myPower > theirPower) {
+            // Dẫn truyện trận đấu
+            const battleLog = [
+                `🔥 **${myPoke.name.toUpperCase()}** tung chiêu nộ kích!`,
+                `🌪️ **${theirPoke.name.toUpperCase()}** phản công mạnh mẽ!`,
+                `✨ Cả hai bên đều đang dốc hết sức bình sinh...`
+            ];
+
+            let winner, loser, winMoney = 1000;
+            if (myTotalPower > theirTotalPower) {
                 winner = message.author; loser = target;
                 db[userId].money += winMoney;
             } else {
@@ -185,14 +214,32 @@ if (command === 'pkauto') {
                 db[target.id].money += winMoney;
             }
 
-            const battleEmbed = new EmbedBuilder()
-                .setTitle('🥊 KẾT QUẢ TRẬN ĐẤU')
-                .setColor('#e74c3c')
-                .setDescription(`**${myPoke.name.toUpperCase()}** (Lvl ${myPoke.level}) vs **${theirPoke.name.toUpperCase()}** (Lvl ${theirPoke.level})`)
-                .addFields({ name: '🏆 NGƯỜI THẮNG', value: `${winner.username} nhận được \`${winMoney} xu\`!` })
+            const resultEmbed = new EmbedBuilder()
+                .setTitle('🥊 ĐẤU TRƯỜNG SINH TỬ - KẾT QUẢ')
+                .setColor(myTotalPower > theirTotalPower ? '#3498db' : '#e74c3c')
+                .setDescription(`${battleLog[Math.floor(Math.random() * battleLog.length)]}`)
+                .addFields(
+                    { 
+                        name: `🔵 ${message.author.username}`, 
+                        value: `Pokémon: **${myPoke.name.toUpperCase()}**\nCấp: \`${myPoke.level}\`\nLực chiến: \`${myTotalPower}\``, 
+                        inline: true 
+                    },
+                    { name: '⚡ VS ⚡', value: '\u200B', inline: true },
+                    { 
+                        name: `🔴 ${target.username}`, 
+                        value: `Pokémon: **${theirPoke.name.toUpperCase()}**\nCấp: \`${theirPoke.level}\`\nLực chiến: \`${theirTotalPower}\``, 
+                        inline: true 
+                    },
+                    { 
+                        name: '🏆 KẾT LUẬN', 
+                        value: `**${winner.username}** giành chiến thắng và nhận ngay **${winMoney} xu**!` 
+                    }
+                )
+                .setImage('https://i.imgur.com/G9L6RGo.gif') // Link gif đấu nhau nếu có
+                .setFooter({ text: "Trận đấu đã được ghi vào lịch sử server!" })
                 .setTimestamp();
 
-            message.channel.send({ embeds: [battleEmbed] });
+            message.channel.send({ embeds: [resultEmbed] });
         });
     }
    if (command === 'bat' || command === 'batpokemon') {
@@ -332,20 +379,140 @@ if (command === 'pkauto') {
             }
         });
     }
+  // ================= [ LỆNH !TOPPK - PHIÊN BẢN ĐẠI GIA ] =================
     if (command === 'toppk') {
-        const topList = Object.entries(db)
-            .sort(([, a], [, b]) => b.catchCount - a.catchCount)
-            .slice(0, 10)
-            .map(([id, data], index) => `${index + 1}. <@${id}>: \`${data.catchCount} con\``)
-            .join('\n');
+        const sortedEntries = Object.entries(db)
+            .sort(([, a], [, b]) => b.catchCount - a.catchCount); // Sắp xếp theo số lượng bắt
+
+        const top10 = sortedEntries.slice(0, 10);
+        
+        // Tìm vị trí của người gõ lệnh trong bảng xếp hạng
+        const userRank = sortedEntries.findIndex(([id]) => id === userId) + 1;
+
+        const medals = ['🥇', '🥈', '🥉', '🏅']; // Icon cho các thứ hạng
+
+        const topList = top10.map(([id, data], index) => {
+            const medal = index < 3 ? medals[index] : `\`#${index + 1}\``;
+            return `${medal} <@${id}> — **${data.catchCount}** con | \`${data.money.toLocaleString()} xu\``;
+        }).join('\n');
 
         const topEmbed = new EmbedBuilder()
-            .setTitle('🏆 BXH BẬC THẦY POKÉMON')
+            .setAuthor({ name: "BẢNG VÀNG CAO THỦ POKÉMON", iconURL: "https://i.imgur.com/vHdfZfC.png" })
+            .setTitle('🏆 NHỮNG BẬC THẦY SĂN ĐUỔI HÀNG ĐẦU')
             .setColor('#f1c40f')
-            .setDescription(topList || "Chưa có ai trên bảng xếp hạng!")
+            .setThumbnail('https://i.imgur.com/399vA7N.png') // Ảnh trang trí
+            .setDescription(topList || "🌵 *Chưa có ai tham gia săn bắt...*")
+            .addFields({ 
+                name: '👤 Thứ hạng của ông', 
+                value: userRank > 0 ? `Ông đang đứng thứ **#${userRank}** trên toàn server!` : "Ông chưa có tên trên bảng vàng." 
+            })
+            .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
 
         message.channel.send({ embeds: [topEmbed] });
+    }
+    // ================= [ LỆNH !POKEDEX - TRA CỨU DANH SÁCH ] =================
+    if (command === 'pokedex' || command === 'dex') {
+        const page = parseInt(args[0]) || 1; // Mặc định trang 1
+        const limit = 20; // Mỗi trang hiện 20 con
+        const offset = (page - 1) * limit;
+
+        try {
+            // Lấy danh sách từ API theo trang
+            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`);
+            const pokemonList = res.data.results;
+            
+            if (pokemonList.length === 0) return message.reply("❌ Trang này không có Pokémon nào đâu ông!");
+
+            const listString = pokemonList.map((p, i) => {
+                const id = offset + i + 1;
+                return `\`#${id.toString().padStart(3, '0')}\` **${p.name.toUpperCase()}**`;
+            }).join('\n');
+
+            const dexEmbed = new EmbedBuilder()
+                .setTitle('📚 THƯ VIỆN POKÉMON (POKÉDEX)')
+                .setColor('#3498db')
+                .setThumbnail('https://i.imgur.com/399vA7N.png')
+                .setDescription(`Đang hiển thị danh sách từ **#${offset + 1}** đến **#${offset + pokemonList.length}**\n\n${listString}`)
+                .addFields({ name: '📖 Hướng dẫn', value: `Gõ \`!pokedex ${page + 1}\` để xem trang tiếp theo.` })
+                .setFooter({ text: `Trang ${page} | Tổng cộng: 1000+ Pokémon` })
+                .setTimestamp();
+
+            message.channel.send({ embeds: [dexEmbed] });
+
+        } catch (e) {
+            message.reply("❌ Lỗi khi lấy danh sách Pokémon!");
+        }
+    }
+    if (command === 'addpokemon' || command === 'addpk') {
+        if (!message.member.permissions.has("ManageMessages")) return message.reply("Cút!");
+
+        const target = message.mentions.users.first();
+        const input = args[1]; // Có thể là tên "pikachu" hoặc số "25"
+        const level = parseInt(args[2]) || 1;
+
+        if (!target || !input) return message.reply("Dùng: `!addpokemon @user [Tên hoặc ID] [Level]`");
+
+        try {
+            // Check API bằng ID hoặc Tên đều được
+            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${input.toLowerCase()}`);
+            const realName = res.data.name;
+
+            if (!db[target.id]) db[target.id] = { money: 5000, hop: [], catchCount: 0 };
+
+            db[target.id].hop.push({
+                name: realName,
+                level: level,
+                type: res.data.types[0].type.name
+            });
+
+            const addEmbed = new EmbedBuilder()
+                .setTitle('🎁 ADMIN TẶNG POKÉMON')
+                .setColor('#2ecc71')
+                .setDescription(`Đã tặng **${realName.toUpperCase()}** cho **${target.username}**`)
+                .setThumbnail(res.data.sprites.other['official-artwork'].front_default)
+                .addFields({ name: '🆙 Cấp độ', value: `\`Lvl ${level}\`` });
+
+            message.channel.send({ embeds: [addEmbed] });
+        } catch (e) {
+            message.reply("❌ ID hoặc Tên Pokémon không tồn tại!");
+        }
+    }
+    // ================= [ LỆNH !ADDXUVANG - CHỈ ADMIN ] =================
+    if (command === 'addxuvang' || command === 'addxu') {
+        // Chỉ những người có quyền Quản lý tin nhắn mới được dùng
+        if (!message.member.permissions.has("ManageMessages")) {
+            return message.reply("❌ Quyền hạn không đủ! Chỉ Admin mới được cấp xu vàng.");
+        }
+
+        const target = message.mentions.users.first();
+        const amount = parseInt(args[1]);
+
+        if (!target || isNaN(amount)) {
+            return message.reply("⚠️ Sai cú pháp rồi sếp! Dùng: `!addxuvang @user [số_tiền]`");
+        }
+
+        // Khởi tạo dữ liệu nếu người đó chưa từng chơi
+        if (!db[target.id]) {
+            db[target.id] = { money: 5000, hop: [], catchCount: 0 };
+        }
+
+        // Cộng tiền
+        db[target.id].money += amount;
+
+        const xuEmbed = new EmbedBuilder()
+            .setTitle('💰 NGÂN KHU ĐÃ GIẢI NGÂN')
+            .setColor('#f1c40f')
+            .setThumbnail('https://i.imgur.com/399vA7N.png')
+            .setDescription(`Admin **${message.author.username}** đã chuyển xu vàng cho **${target.username}**!`)
+            .addFields(
+                { name: '💵 Số lượng', value: `\`+${amount.toLocaleString()} xu\``, inline: true },
+                { name: '💳 Số dư hiện tại', value: `\`${db[target.id].money.toLocaleString()} xu\``, inline: true }
+            )
+            .setFooter({ text: "Tiền đã được cộng vào tài khoản!" })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [xuEmbed] });
     }
     if (command === 'phongsinh') {
         const name = args[0]?.toLowerCase();
@@ -359,19 +526,46 @@ if (command === 'pkauto') {
 
         message.reply(`🕊️ Ông đã thả **${name.toUpperCase()}** về tự nhiên và nhận được \`100 xu\`!`);
     }
+    // ================= [ LỆNH !TRAIN - LEVEL CÀNG CAO GIÁ CÀNG CHÁT ] =================
     if (command === 'train') {
         const name = args[0]?.toLowerCase();
-        if (!name) return message.reply("Chọn con nào để huấn luyện?");
+        if (!name) return message.reply("Chọn con nào để huấn luyện? (Ví dụ: `!train pikachu`) ");
 
         const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === name);
-        if (idx === -1) return message.reply("Con này không có trong Hộp!");
+        if (idx === -1) return message.reply("Con này không có trong Hộp của ông!");
 
-        if (db[userId].money < 500) return message.reply("Không đủ 500 xu để huấn luyện!");
+        const pokemon = db[userId].hop[idx];
+        const currentLvl = pokemon.level;
 
-        db[userId].money -= 500;
-        db[userId].hop[idx].level += Math.floor(Math.random() * 5) + 1; // Tăng 1-5 level
+        // --- CÔNG THỨC TÍNH GIÁ ĐỘNG ---
+        // Level càng cao, phí càng tăng. Cấp 100 thì khỏi train nữa.
+        if (currentLvl >= 100) return message.reply(`🔥 **${name.toUpperCase()}** đã đạt cấp tối đa (Lvl 100), không thể huấn luyện thêm!`);
 
-        message.reply(`⚔️ **${name.toUpperCase()}** vừa hoàn thành khóa huấn luyện! Cấp hiện tại: \`Lvl ${db[userId].hop[idx].level}\``);
+        const baseCost = 500;
+        const upgradeCost = baseCost + (currentLvl * 100); // Công thức: 500 + (Lvl * 100)
+
+        if (db[userId].money < upgradeCost) {
+            return message.reply(`💸 Không đủ tiền rồi! Để huấn luyện **${name.toUpperCase()}** (Lvl ${currentLvl}) ông cần tới \`${upgradeCost.toLocaleString()} xu\`.`);
+        }
+
+        // Thực hiện trừ tiền và tăng level
+        db[userId].money -= upgradeCost;
+        const lvGain = Math.floor(Math.random() * 3) + 1; // Giảm xuống tăng 1-3 level cho quý giá
+        db[userId].hop[idx].level += lvGain;
+
+        const trainEmbed = new EmbedBuilder()
+            .setTitle('⚔️ PHÒNG TẬP GYM POKÉMON')
+            .setColor('#e67e22')
+            .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
+            .setDescription(`Huấn luyện thành công **${name.toUpperCase()}**!`)
+            .addFields(
+                { name: '📈 Level mới', value: `\`Lvl ${currentLvl}\` ➡️ \`Lvl ${db[userId].hop[idx].level}\``, inline: true },
+                { name: '💰 Phí huấn luyện', value: `\`-${upgradeCost.toLocaleString()} xu\``, inline: true }
+            )
+            .setFooter({ text: `Số dư còn lại: ${db[userId].money.toLocaleString()} xu` })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [trainEmbed] });
     }
     if (command === 'daily') {
         // Lưu ý: Do dùng biến db trong RAM nên reset bot là có thể gõ lại được ngay

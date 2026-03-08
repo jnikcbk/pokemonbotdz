@@ -1,4 +1,4 @@
-onst { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
 const fs = require('fs'); // <--- PHẢI CÓ CÁI NÀY ĐỂ LƯU FILE
 

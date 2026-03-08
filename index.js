@@ -47,7 +47,7 @@ client.on('messageCreate', async message => {
             .addFields(
                 { 
                     name: '🐾 Săn Bắt & Thu Phục', 
-                    value: '`!spawn`: Gọi Pokemon xuất hiện.\n`!bat [tên]`: Đoán tên để bắt Pokemon.' 
+                    value: '`!pkauto`: Gọi Pokemon xuất hiện.\n`!bat [tên]`: Đoán tên để bắt Pokemon.' 
                 },
                 { 
                     name: '📦 Quản Lý Hộp (Storage)', 
@@ -85,7 +85,7 @@ if (command === 'pkauto') {
     // Thông báo bắt đầu
     const startEmbed = new EmbedBuilder()
         .setTitle("🚀 KÍCH HOẠT CHẾ ĐỘ AUTO SPAWN")
-        .setDescription("Cứ mỗi **30 giây**, một Pokémon sẽ xuất hiện. Ai gõ `!bat [tên]` nhanh nhất sẽ sở hữu!")
+        .setDescription("Cứ mỗi **10 giây**, một Pokémon sẽ xuất hiện. Ai gõ `!bat [tên]` nhanh nhất sẽ sở hữu!")
         .setColor('#2ecc71')
         .setFooter({ text: "Gõ !pkauto lần nữa để tắt chế độ này" });
 
@@ -136,7 +136,7 @@ if (command === 'pkauto') {
         } catch (e) { 
             console.log("Lỗi hệ thống Spawn: " + e.message); 
         }
-    }, 30000); // 30000ms = 30 giây
+    }, 10000); // 30000ms = 30 giây
 }
     if (command === 'dau' || command === 'pvp') {
         const target = message.mentions.users.first();

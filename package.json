@@ -1,24 +1,16 @@
 {
-  "name": "pokemon-bot-vn",
+  "name": "pokemon-bot-community",
   "version": "1.0.0",
   "description": "Bot Pokemon cộng đồng cho Discord",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "test": "echo \"Error: no test spec\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "pokemon",
-    "vn"
-  ],
-  "author": "YourName",
-  "license": "ISC",
   "dependencies": {
     "axios": "^1.6.0",
-    "discord.js": "^14.13.0",
-    "dotenv": "^16.3.0",
-    "mongoose": "^7.5.0"
+    "discord.js": "^14.13.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }

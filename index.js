@@ -14,7 +14,7 @@ const client = new Client({
 let pkAuto = {}; 
 let db = {}; 
 let currentGlobalPokemon = null; // CẦN THÊM DÒNG NÀY
-const PREFIX = "!";
+
 const PREFIX = "!";
 
 client.on('ready', () => {

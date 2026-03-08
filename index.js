@@ -82,13 +82,13 @@ if (command === 'pkauto') {
                 .setTitle("🛰️ HỆ THỐNG GIÁM SÁT")
                 .setDescription("🛑 **CHẾ ĐỘ TỰ ĐỘNG SPAWN ĐÃ TẮT**")
                 .setColor('#ff4757')
-        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 5000)); // 5s sau tự xóa thông báo tắt
+        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 10000)); // 5s sau tự xóa thông báo tắt
     }
 
     const startEmbed = new EmbedBuilder()
         .setAuthor({ name: "HỆ THỐNG TỰ ĐỘNG", iconURL: "https://i.imgur.com/vHdfZfC.png" })
         .setTitle("🚀 KÍCH HOẠT MÁY DÒ TÌM POKÉMON")
-        .setDescription("Cứ mỗi **10 giây**, một Pokémon sẽ xuất hiện.\n\n> **Lưu ý:** Hãy chuẩn bị sẵn lệnh `!bat`!")
+        .setDescription("Cứ mỗi **20 giây**, một Pokémon sẽ xuất hiện.\n\n> **Lưu ý:** Hãy chuẩn bị sẵn lệnh `!bat`!")
         .setColor('#2ed573')
         .addFields({ name: "📡 Trạng thái", value: "🟢 Đang quét tìm tín hiệu...", inline: true })
         .setFooter({ text: "Gõ !pkauto lần nữa để dừng" });
@@ -143,7 +143,7 @@ if (command === 'pkauto') {
         } catch (e) { 
             console.log("Lỗi quét Pokemon: " + e.message); 
         }
-    }, 10000); // 10 giây
+    }, 20000); // 10 giây
 }
     if (command === 'dau' || command === 'pvp') {
         const target = message.mentions.users.first();

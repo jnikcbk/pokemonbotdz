@@ -13,7 +13,10 @@ const client = new Client({
 // --- PHẦN QUAN TRỌNG: ĐỌC DỮ LIỆU TỪ FILE ---
 let db = {};
 const DB_PATH = './db.json';
-
+// Tìm chỗ khai báo let db = {}; rồi dán đoạn này ngay dưới:
+function saveDB() {
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 4));
+}
 if (fs.existsSync(DB_PATH)) {
     try {
         const rawData = fs.readFileSync(DB_PATH, 'utf-8');
@@ -256,7 +259,7 @@ if (command === 'pkauto') {
 
         db[userId].money += 200;
         db[userId].catchCount += 1;
-
+saveDB();
         // Xóa ảnh Pokemon
         if (currentGlobalPokemon.message) {
             currentGlobalPokemon.message.delete().catch(() => {});
@@ -593,7 +596,7 @@ if (command === 'pkauto') {
 
         db[userId].hop.splice(idx, 1);
         db[userId].money += 100; // Thưởng 100 xu khi phóng sinh
-
+saveDB();
         message.reply(`🕊️ Ông đã thả **${name.toUpperCase()}** về tự nhiên và nhận được \`100 xu\`!`);
     }
    // ================= [ LỆNH !TRAIN - ĐÃ FIX LỖI KHÔNG TRỪ TIỀN ] =================
@@ -644,6 +647,7 @@ if (command === 'pkauto') {
     if (command === 'daily') {
         // Lưu ý: Do dùng biến db trong RAM nên reset bot là có thể gõ lại được ngay
         db[userId].money += 1000;
+        saveDB();
         message.reply("💰 Ông đã nhận được quà điểm danh: \`1,000 xu\`!");
     }
     if (command === 'ev') {

@@ -59,7 +59,7 @@ client.on('messageCreate', async message => {
                 },
                 { 
                     name: '🛡️ QUYỀN HẠN ADMIN (QUẢN TRỊ)', 
-                    value: '`!addpk @user [Tên/ID] [Lvl]`: Tặng Pokémon cho người chơi.\n`!addxu @user [số_tiền]`: Cấp thêm xu vàng vào tài khoản.' 
+                    value: '`!addpk @user [Tên/ID] [Lvl]`: Tặng Pokémon cho người chơi.\n`!addxuvang @user [số_tiền]`: Cấp thêm xu vàng vào tài khoản.\n`!buypkvip' 
                 }
             )
             .addFields({ 
@@ -248,33 +248,105 @@ if (command === 'pkauto') {
         setTimeout(() => success.delete().catch(() => {}), 3000);
     }
 }
-    // ================= [ LỆNH !HOP / !CHECK - BẢN ĐẸP ] =================
+   // ================= [ LỆNH !HOP / !CHECK - BẢN SIÊU CHI TIẾT ] =================
     if (command === 'hop' || command === 'check') {
         const target = message.mentions.users.first() || message.author;
         const userData = db[target.id];
 
-        if (!userData || !userData.hop) return message.reply("Người này chưa có dữ liệu Pokémon!");
+        if (!userData || !userData.hop || userData.hop.length === 0) {
+            return message.reply(`❌ **${target.username}** hiện đang trắng tay, chưa có Pokémon nào!`);
+        }
 
-        // Xử lý danh sách: Hiển thị Tên + Level
-        const pokemonList = userData.hop.length > 0 
-            ? userData.hop.map((p, i) => `\`${i + 1}.\` **${p.name.toUpperCase()}** (Lvl ${p.level})`).join("\n") 
-            : "Hộp đang trống không!";
+        // Tính toán trang (Mỗi trang hiện 10 con để tránh bị dài quá)
+        const page = parseInt(args[0]) || 1;
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(userData.hop.length / itemsPerPage);
+        const start = (page - 1) * itemsPerPage;
+        const end = start + itemsPerPage;
+        const currentItems = userData.hop.slice(start, end);
+
+        if (currentItems.length === 0) return message.reply("Trang này không có gì cả!");
+
+        // Xử lý danh sách: Thêm icon hệ và định dạng đẹp
+        const pokemonList = currentItems.map((p, i) => {
+            const levelBar = "▓".repeat(Math.floor(p.level / 10)) + "░".repeat(10 - Math.floor(p.level / 10));
+            return `\`#${(start + i + 1).toString().padStart(2, '0')}\` **${p.name.toUpperCase()}** \`Lvl ${p.level}\`\n[${levelBar}]`;
+        }).join("\n\n");
 
         const hopEmbed = new EmbedBuilder()
-            .setTitle(`📦 HỘP POKÉMON: ${target.username.toUpperCase()}`)
+            .setAuthor({ name: `HỒ SƠ HUẤN LUYỆN VIÊN: ${target.username.toUpperCase()}`, iconURL: target.displayAvatarURL() })
+            .setTitle(`📦 HỘP POKÉMON (Trang ${page}/${totalPages})`)
             .setColor('#3498db')
-            .setThumbnail(target.displayAvatarURL({ dynamic: true }))
             .addFields(
-                { name: '💰 Tiền mặt', value: `\`${userData.money.toLocaleString()} xu\``, inline: true },
-                { name: '📊 Tổng bắt', value: `\`${userData.catchCount} con\``, inline: true }
+                { name: '💰 Tài chính', value: `💵 \`${userData.money.toLocaleString()} xu\``, inline: true },
+                { name: '🏆 Thành tựu', value: `⭐ \`${userData.catchCount} đã bắt\``, inline: true }
             )
-            .addFields(
-                { name: '📋 Danh sách Pokémon hiện có', value: pokemonList.length > 1024 ? "Hộp quá nhiều Pokémon, không thể hiển thị hết!" : pokemonList }
-            )
-            .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
+            .setDescription(`\n${pokemonList}`)
+            .addFields({ 
+                name: '📖 Hướng dẫn', 
+                value: `Gõ \`!hop [số_trang]\` để xem thêm.\nVí dụ: \`!hop 2\`` 
+            })
+            .setFooter({ text: `Tổng cộng: ${userData.hop.length} Pokémon trong bộ sưu tập` })
             .setTimestamp();
 
         return message.reply({ embeds: [hopEmbed] });
+    }
+    // ================= [ LỆNH !BUYPKVIP - QUYỀN LỢI VIP ] =================
+    if (command === 'buypkvip' || command === 'vip') {
+        const vipPrice = 100000; // Giá mua Role VIP (Ví dụ 100k xu)
+        const vipRoleName = "⭐ Bậc Thầy VIP"; // Tên Role ông muốn cấp
+
+        // Kiểm tra xem Member đã có trong DB chưa
+        if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
+
+        // --- PHẦN 1: ADMIN SỬ DỤNG (CẤP ROLE CHO NGƯỜI KHÁC) ---
+        if (message.member.permissions.has("ManageMessages") && message.mentions.users.first()) {
+            const targetUser = message.mentions.members.first();
+            let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
+            
+            if (!role) return message.reply(`❌ Lỗi: Không tìm thấy Role tên là \`${vipRoleName}\` trong server này!`);
+
+            targetUser.roles.add(role);
+            return message.channel.send({ embeds: [
+                new EmbedBuilder()
+                    .setTitle('🛡️ QUYỀN NĂNG ADMIN')
+                    .setColor('#e74c3c')
+                    .setDescription(`Admin **${message.author.username}** đã đặc cách cấp quyền **VIP** cho <@${targetUser.id}>!`)
+                    .setTimestamp()
+            ]});
+        }
+
+        // --- PHẦN 2: MEMBER TỰ MUA ---
+        if (message.member.roles.cache.some(role => role.name === vipRoleName)) {
+            return message.reply("👑 Ông đã là **VIP** rồi, mua chi nữa!");
+        }
+
+        if (db[userId].money < vipPrice) {
+            return message.reply(`💸 Thiếu tiền rồi! Role VIP có giá \`${vipPrice.toLocaleString()} xu\`. Ông còn thiếu \`${(vipPrice - db[userId].money).toLocaleString()} xu\` nữa.`);
+        }
+
+        // Thực hiện trừ tiền và cấp Role
+        let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
+        if (!role) return message.reply("❌ Server chưa tạo Role VIP này, báo Admin ngay!");
+
+        db[userId].money -= vipPrice;
+        message.member.roles.add(role);
+        
+        // Lưu lại dữ liệu
+        fs.writeFileSync('./db.json', JSON.stringify(db, null, 2));
+
+        const vipEmbed = new EmbedBuilder()
+            .setTitle('🌟 CHÚC MỪNG TÂN VIP 🌟')
+            .setColor('#f1c40f')
+            .setDescription(`**${message.author.username}** đã chính thức gia nhập hàng ngũ **Bậc Thầy VIP**!`)
+            .addFields(
+                { name: '💰 Chi phí', value: `\`-${vipPrice.toLocaleString()} xu\``, inline: true },
+                { name: '💎 Đặc quyền', value: `\`Role Đặc Biệt\` | \`Kênh Chat Riêng\` | \`Tăng Tỉ Lệ Bắt\``, inline: true }
+            )
+            .setFooter({ text: "Chào mừng quý ngài đến với tầng lớp thượng lưu!" })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [vipEmbed] });
     }
    // ================= [ LỆNH !TRADE - NÂNG CẤP ] =================
     if (command === 'trade') {
@@ -453,7 +525,7 @@ if (command === 'pkauto') {
         }
     }
     // ================= [ LỆNH !ADDXUVANG - CHỈ ADMIN ] =================
-    if (command === 'addxuvang' || command === 'addxu') {
+    if (command === 'addxuvang' || command === 'addxuvang312312312312') {
         // Chỉ những người có quyền Quản lý tin nhắn mới được dùng
         if (!message.member.permissions.has("ManageMessages")) {
             return message.reply("❌ Quyền hạn không đủ! Chỉ Admin mới được cấp xu vàng.");
@@ -500,10 +572,13 @@ if (command === 'pkauto') {
 
         message.reply(`🕊️ Ông đã thả **${name.toUpperCase()}** về tự nhiên và nhận được \`100 xu\`!`);
     }
-    // ================= [ LỆNH !TRAIN - LEVEL CÀNG CAO GIÁ CÀNG CHÁT ] =================
+   // ================= [ LỆNH !TRAIN - ĐÃ FIX LỖI KHÔNG TRỪ TIỀN ] =================
     if (command === 'train') {
         const name = args[0]?.toLowerCase();
         if (!name) return message.reply("Chọn con nào để huấn luyện? (Ví dụ: `!train pikachu`) ");
+
+        // Kiểm tra xem người dùng có trong DB chưa
+        if (!db[userId]) return message.reply("Ông chưa có dữ liệu, đi bắt Pokemon trước đi!");
 
         const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === name);
         if (idx === -1) return message.reply("Con này không có trong Hộp của ông!");
@@ -511,32 +586,33 @@ if (command === 'pkauto') {
         const pokemon = db[userId].hop[idx];
         const currentLvl = pokemon.level;
 
-        // --- CÔNG THỨC TÍNH GIÁ ĐỘNG ---
-        // Level càng cao, phí càng tăng. Cấp 100 thì khỏi train nữa.
-        if (currentLvl >= 100) return message.reply(`🔥 **${name.toUpperCase()}** đã đạt cấp tối đa (Lvl 100), không thể huấn luyện thêm!`);
+        if (currentLvl >= 100) return message.reply(`🔥 **${name.toUpperCase()}** đã đạt cấp tối đa (Lvl 100)!`);
 
+        // Tính toán giá nâng cấp
         const baseCost = 500;
-        const upgradeCost = baseCost + (currentLvl * 100); // Công thức: 500 + (Lvl * 100)
+        const upgradeCost = baseCost + (currentLvl * 100);
 
         if (db[userId].money < upgradeCost) {
-            return message.reply(`💸 Không đủ tiền rồi! Để huấn luyện **${name.toUpperCase()}** (Lvl ${currentLvl}) ông cần tới \`${upgradeCost.toLocaleString()} xu\`.`);
+            return message.reply(`💸 Không đủ tiền! Cần \`${upgradeCost.toLocaleString()} xu\`.`);
         }
 
-        // Thực hiện trừ tiền và tăng level
-        db[userId].money -= upgradeCost;
-        const lvGain = Math.floor(Math.random() * 3) + 1; // Giảm xuống tăng 1-3 level cho quý giá
+        // --- BƯỚC QUAN TRỌNG: CẬP NHẬT DỮ LIỆU ---
+        db[userId].money -= upgradeCost; // Trừ tiền
+        const lvGain = Math.floor(Math.random() * 3) + 1; // Tăng 1-3 level
         db[userId].hop[idx].level += lvGain;
+
+        // Ghi dữ liệu vào file db.json ngay lập tức để không bị mất
+        fs.writeFileSync('./db.json', JSON.stringify(db, null, 2)); 
 
         const trainEmbed = new EmbedBuilder()
             .setTitle('⚔️ PHÒNG TẬP GYM POKÉMON')
             .setColor('#e67e22')
-            .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
             .setDescription(`Huấn luyện thành công **${name.toUpperCase()}**!`)
             .addFields(
                 { name: '📈 Level mới', value: `\`Lvl ${currentLvl}\` ➡️ \`Lvl ${db[userId].hop[idx].level}\``, inline: true },
                 { name: '💰 Phí huấn luyện', value: `\`-${upgradeCost.toLocaleString()} xu\``, inline: true }
             )
-            .setFooter({ text: `Số dư còn lại: ${db[userId].money.toLocaleString()} xu` })
+            .setFooter({ text: `Số dư hiện tại: ${db[userId].money.toLocaleString()} xu` })
             .setTimestamp();
 
         message.channel.send({ embeds: [trainEmbed] });

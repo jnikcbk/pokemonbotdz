@@ -291,59 +291,63 @@ if (command === 'pkauto') {
 
         return message.reply({ embeds: [hopEmbed] });
     }
-    // ================= [ LỆNH !BUYPKVIP - QUYỀN LỢI VIP ] =================
+   // ================= [ LỆNH !BUYPKVIP - TỰ TẠO ROLE ] =================
     if (command === 'buypkvip' || command === 'vip') {
-        const vipPrice = 100000; // Giá mua Role VIP (Ví dụ 100k xu)
-        const vipRoleName = "⭐ Bậc Thầy VIP"; // Tên Role ông muốn cấp
+        const vipPrice = 100000; 
+        const vipRoleName = "⭐ BẬC THẦY VIP"; // Tên Role tự động tạo
 
-        // Kiểm tra xem Member đã có trong DB chưa
         if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
-        // --- PHẦN 1: ADMIN SỬ DỤNG (CẤP ROLE CHO NGƯỜI KHÁC) ---
-        if (message.member.permissions.has("ManageMessages") && message.mentions.users.first()) {
-            const targetUser = message.mentions.members.first();
+        // Hàm hỗ trợ tìm hoặc tạo Role
+        const getOrCreateRole = async () => {
             let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
-            
-            if (!role) return message.reply(`❌ Lỗi: Không tìm thấy Role tên là \`${vipRoleName}\` trong server này!`);
+            if (!role) {
+                // Nếu không thấy thì Bot tự tạo Role mới
+                role = await message.guild.roles.create({
+                    name: vipRoleName,
+                    color: '#f1c40f', // Màu vàng Gold
+                    permissions: [],
+                    reason: 'Hệ thống tự động tạo Role VIP cho người chơi',
+                });
+            }
+            return role;
+        };
 
-            targetUser.roles.add(role);
-            return message.channel.send({ embeds: [
-                new EmbedBuilder()
-                    .setTitle('🛡️ QUYỀN NĂNG ADMIN')
-                    .setColor('#e74c3c')
-                    .setDescription(`Admin **${message.author.username}** đã đặc cách cấp quyền **VIP** cho <@${targetUser.id}>!`)
-                    .setTimestamp()
-            ]});
+        // --- TRƯỜNG HỢP 1: ADMIN TẶNG ROLE ---
+        if (message.member.permissions.has("ManageMessages") && message.mentions.users.first()) {
+            const targetMember = message.mentions.members.first();
+            const role = await getOrCreateRole();
+
+            await targetMember.roles.add(role);
+            return message.channel.send(`🛡️ **Admin** đã đặc cách tạo và cấp Role **${vipRoleName}** cho <@${targetMember.id}>!`);
         }
 
-        // --- PHẦN 2: MEMBER TỰ MUA ---
-        if (message.member.roles.cache.some(role => role.name === vipRoleName)) {
-            return message.reply("👑 Ông đã là **VIP** rồi, mua chi nữa!");
+        // --- TRƯỜNG HỢP 2: MEMBER TỰ MUA ---
+        if (message.member.roles.cache.some(r => r.name === vipRoleName)) {
+            return message.reply("👑 Ông đã sở hữu đặc quyền **VIP** rồi!");
         }
 
         if (db[userId].money < vipPrice) {
-            return message.reply(`💸 Thiếu tiền rồi! Role VIP có giá \`${vipPrice.toLocaleString()} xu\`. Ông còn thiếu \`${(vipPrice - db[userId].money).toLocaleString()} xu\` nữa.`);
+            return message.reply(`💸 Thiếu tiền! Giá VIP là \`${vipPrice.toLocaleString()} xu\`.`);
         }
 
         // Thực hiện trừ tiền và cấp Role
-        let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
-        if (!role) return message.reply("❌ Server chưa tạo Role VIP này, báo Admin ngay!");
-
+        const role = await getOrCreateRole();
         db[userId].money -= vipPrice;
-        message.member.roles.add(role);
-        
-        // Lưu lại dữ liệu
+        await message.member.roles.add(role);
+
+        // Lưu dữ liệu
         fs.writeFileSync('./db.json', JSON.stringify(db, null, 2));
 
         const vipEmbed = new EmbedBuilder()
-            .setTitle('🌟 CHÚC MỪNG TÂN VIP 🌟')
+            .setTitle('🌟 KÍCH HOẠT ĐẶC QUYỀN VIP 🌟')
             .setColor('#f1c40f')
-            .setDescription(`**${message.author.username}** đã chính thức gia nhập hàng ngũ **Bậc Thầy VIP**!`)
+            .setDescription(`Chúc mừng **${message.author.username}** đã trở thành **VIP**!`)
             .addFields(
                 { name: '💰 Chi phí', value: `\`-${vipPrice.toLocaleString()} xu\``, inline: true },
-                { name: '💎 Đặc quyền', value: `\`Role Đặc Biệt\` | \`Kênh Chat Riêng\` | \`Tăng Tỉ Lệ Bắt\``, inline: true }
+                { name: '✨ Trạng thái', value: `\`Đã cấp Role tự động\``, inline: true }
             )
-            .setFooter({ text: "Chào mừng quý ngài đến với tầng lớp thượng lưu!" })
+            .setFooter({ text: "Hệ thống đã tự động thiết lập quyền hạn VIP cho ông." })
             .setTimestamp();
 
         message.channel.send({ embeds: [vipEmbed] });

@@ -1,5 +1,6 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+onst { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
 const axios = require('axios');
+const fs = require('fs'); // <--- PHẢI CÓ CÁI NÀY ĐỂ LƯU FILE
 
 const client = new Client({ 
     intents: [
@@ -9,11 +10,29 @@ const client = new Client({
     ] 
 });
 
-// Dữ liệu lưu tạm (Sẽ mất khi bot reset trên Railway)
-// Dữ liệu lưu tạm
-let pkAuto = {}; 
-let db = {}; 
-let currentGlobalPokemon = null; // CẦN THÊM DÒNG NÀY
+// --- PHẦN QUAN TRỌNG: ĐỌC DỮ LIỆU TỪ FILE ---
+let db = {};
+const DB_PATH = './db.json';
+
+if (fs.existsSync(DB_PATH)) {
+    try {
+        const rawData = fs.readFileSync(DB_PATH, 'utf-8');
+        db = JSON.parse(rawData);
+        console.log("📂 Đã tải dữ liệu người chơi thành công!");
+    } catch (e) {
+        console.log("⚠️ File db.json bị lỗi, khởi tạo mới!");
+        db = {};
+    }
+}
+
+// Hàm lưu dữ liệu (Dùng sau mỗi lần thay đổi tiền hoặc túi đồ)
+function saveDB() {
+    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 4));
+}
+
+let pkAuto = null; // Quản lý 1 vòng lặp duy nhất
+let currentGlobalPokemon = null; 
+let spawnChannelId = null;
 
 const PREFIX = "!";
 
@@ -28,13 +47,14 @@ client.on('messageCreate', async message => {
     const command = args.shift().toLowerCase();
     const userId = message.author.id;
 
-    // Khởi tạo dữ liệu người dùng
+    // Khởi tạo dữ liệu người dùng (Chỉ làm nếu chưa có trong db đã đọc)
     if (!db[userId]) {
         db[userId] = { 
             money: 5000, 
             hop: [], 
             catchCount: 0 
         };
+        saveDB(); // Lưu ngay người dùng mới vào file
     }
 
     // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION ] =================

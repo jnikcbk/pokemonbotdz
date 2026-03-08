@@ -1,7 +1,6 @@
 {
   "name": "pokemon-bot-community",
   "version": "1.0.0",
-  "description": "Bot Pokemon cộng đồng cho Discord",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -11,6 +10,6 @@
     "discord.js": "^14.13.0"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": "20.x" 
   }
 }

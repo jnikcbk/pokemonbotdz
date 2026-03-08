@@ -271,16 +271,28 @@ saveDB();
         setTimeout(() => success.delete().catch(() => {}), 3000);
     }
 }
-   // ================= [ LỆNH !HOP / !CHECK - BẢN SIÊU CHI TIẾT ] =================
+  // ================= [ LỆNH !HOP / !CHECK - BẢN FIX LỖI ] =================
     if (command === 'hop' || command === 'check') {
         const target = message.mentions.users.first() || message.author;
+
+        // BƯỚC 1: Tự động khởi tạo nếu chưa có dữ liệu (Fix lỗi lúc dùng được lúc không)
+        if (!db[target.id]) {
+            db[target.id] = { 
+                money: 5000, 
+                hop: [], 
+                catchCount: 0 
+            };
+            saveDB(); // Lưu ngay vào file để đồng bộ
+        }
+
         const userData = db[target.id];
 
-        if (!userData || !userData.hop || userData.hop.length === 0) {
+        // Kiểm tra nếu túi đồ trống
+        if (!userData.hop || userData.hop.length === 0) {
             return message.reply(`❌ **${target.username}** hiện đang trắng tay, chưa có Pokémon nào!`);
         }
 
-        // Tính toán trang (Mỗi trang hiện 10 con để tránh bị dài quá)
+        // Logic phân trang (Giữ nguyên bản đẹp của ông)
         const page = parseInt(args[0]) || 1;
         const itemsPerPage = 10;
         const totalPages = Math.ceil(userData.hop.length / itemsPerPage);
@@ -288,9 +300,8 @@ saveDB();
         const end = start + itemsPerPage;
         const currentItems = userData.hop.slice(start, end);
 
-        if (currentItems.length === 0) return message.reply("Trang này không có gì cả!");
+        if (currentItems.length === 0) return message.reply(`Trang này không có gì cả! Hộp của ông chỉ có ${totalPages} trang.`);
 
-        // Xử lý danh sách: Thêm icon hệ và định dạng đẹp
         const pokemonList = currentItems.map((p, i) => {
             const levelBar = "▓".repeat(Math.floor(p.level / 10)) + "░".repeat(10 - Math.floor(p.level / 10));
             return `\`#${(start + i + 1).toString().padStart(2, '0')}\` **${p.name.toUpperCase()}** \`Lvl ${p.level}\`\n[${levelBar}]`;
@@ -305,11 +316,7 @@ saveDB();
                 { name: '🏆 Thành tựu', value: `⭐ \`${userData.catchCount} đã bắt\``, inline: true }
             )
             .setDescription(`\n${pokemonList}`)
-            .addFields({ 
-                name: '📖 Hướng dẫn', 
-                value: `Gõ \`!hop [số_trang]\` để xem thêm.\nVí dụ: \`!hop 2\`` 
-            })
-            .setFooter({ text: `Tổng cộng: ${userData.hop.length} Pokémon trong bộ sưu tập` })
+            .setFooter({ text: `Tổng cộng: ${userData.hop.length} Pokémon | Trang ${page}/${totalPages}` })
             .setTimestamp();
 
         return message.reply({ embeds: [hopEmbed] });

@@ -71,36 +71,23 @@ client.on('messageCreate', async message => {
 
         return message.reply({ embeds: [helpEmbed] });
     }
- // ================= [ LỆNH !PKAUTO - PHIÊN BẢN CHI TIẾT & SIÊU SẠCH ] =================
+// ================= [ LỆNH !PKAUTO - FIX 1 KÊNH CỐ ĐỊNH ] =================
 if (command === 'pkauto') {
-    // Xóa tin nhắn lệnh !pkauto của người dùng để sạch kênh
-    message.delete().catch(() => {});
-
-    const channelId = message.channel.id;
-
-    if (pkAuto[channelId]) {
-        clearInterval(pkAuto[channelId]);
-        delete pkAuto[channelId];
-        return message.channel.send({ embeds: [
-            new EmbedBuilder()
-                .setTitle("🛰️ HỆ THỐNG GIÁM SÁT")
-                .setDescription("🛑 **CHẾ ĐỘ TỰ ĐỘNG SPAWN ĐÃ TẮT**")
-                .setColor('#ff4757')
-        ]}).then(msg => setTimeout(() => msg.delete().catch(() => {}), 20000)); // 5s sau tự xóa thông báo tắt
+    // Nếu đang chạy thì tắt hẳn
+    if (pkAuto) {
+        clearInterval(pkAuto);
+        pkAuto = null;
+        currentGlobalPokemon = null;
+        return message.channel.send("🛑 **ĐÃ TẮT CHẾ ĐỘ TỰ ĐỘNG SPAWN.**");
     }
 
-    const startEmbed = new EmbedBuilder()
-        .setAuthor({ name: "HỆ THỐNG TỰ ĐỘNG", iconURL: "https://i.imgur.com/vHdfZfC.png" })
-        .setTitle("🚀 KÍCH HOẠT MÁY DÒ TÌM POKÉMON")
-        .setDescription("Cứ mỗi **20 giây**, một Pokémon sẽ xuất hiện.\n\n> **Lưu ý:** Hãy chuẩn bị sẵn lệnh `!bat`!")
-        .setColor('#2ed573')
-        .addFields({ name: "📡 Trạng thái", value: "🟢 Đang quét tìm tín hiệu...", inline: true })
-        .setFooter({ text: "Gõ !pkauto lần nữa để dừng" });
+    // Lưu đúng cái kênh ông vừa gõ lệnh vào một biến
+    const spawnChannel = message.channel;
 
-    message.channel.send({ embeds: [startEmbed] });
-    
-    pkAuto[channelId] = setInterval(async () => {
-        // 1. Xóa con cũ nếu chưa ai kịp bắt
+    message.channel.send(`🚀 **BẮT ĐẦU SPAWN TẠI KÊNH:** ${spawnChannel}\n⏱️ Chu kỳ: **20 giây/con**`);
+
+    pkAuto = setInterval(async () => {
+        // Xóa con cũ nếu có
         if (currentGlobalPokemon && currentGlobalPokemon.message) {
             currentGlobalPokemon.message.delete().catch(() => {});
         }
@@ -112,31 +99,21 @@ if (command === 'pkauto') {
             const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
             const pokeName = res.data.name;
             const pokeType = res.data.types[0].type.name;
-            
-            // Chỉ số ảo cho đẹp (tỉ lệ theo level)
-            const hp = 50 + Math.floor(randomLevel * 1.5);
-            const atk = 10 + Math.floor(randomLevel * 0.8);
-
-            const typeColors = {
-                fire: '#ff4757', water: '#3742fa', grass: '#2ed573', 
-                electric: '#eccc68', psychic: '#ef5777', ice: '#7efff5',
-                dark: '#2f3542', dragon: '#ffa502', ghost: '#a55eea'
-            };
 
             const autoEmbed = new EmbedBuilder()
-                .setAuthor({ name: "⚡ POKÉMON HOANG DÃ!", iconURL: "https://i.imgur.com/399vA7N.png" })
-                .setTitle(`🔍 PHÁT HIỆN: ${pokeName.toUpperCase()}`)
-                .setColor(typeColors[pokeType] || '#ced6e0')
+                .setTitle(`✨ POKÉMON XUẤT HIỆN: ${pokeName.toUpperCase()} ✨`)
+                .setColor('#f1c40f')
                 .addFields(
                     { name: '🆙 Cấp độ', value: `\`Lvl ${randomLevel}\``, inline: true },
                     { name: '🧬 Hệ', value: `\`${pokeType.toUpperCase()}\``, inline: true },
-                    { name: '📊 Chỉ số', value: `❤️ HP: \`${hp}\` | ⚔️ ATK: \`${atk}\``, inline: false }
+                    { name: '📊 Chỉ số', value: `❤️ HP: \`${50 + randomLevel * 2}\` | ⚔️ ATK: \`${10 + Math.floor(randomLevel * 1.2)}\`` }
                 )
                 .setImage(res.data.sprites.other['official-artwork'].front_default)
-                .setFooter({ text: `Target: ${pokeName} | Gõ !bat để bắt!` })
+                .setFooter({ text: "Gõ !bat [tên] để thu phục!" })
                 .setTimestamp();
 
-            const sMsg = await message.channel.send({ embeds: [autoEmbed] });
+            // LUÔN GỬI VÀO CÁI KÊNH ĐÃ SETUP
+            const sMsg = await spawnChannel.send({ embeds: [autoEmbed] });
 
             currentGlobalPokemon = { 
                 name: pokeName.toLowerCase(), 
@@ -144,10 +121,10 @@ if (command === 'pkauto') {
                 message: sMsg 
             };
 
-        } catch (e) { 
-            console.log("Lỗi quét Pokemon: " + e.message); 
+        } catch (e) {
+            console.log("Lỗi spawn: " + e.message);
         }
-    }, 20000); // 10 giây
+    }, 20000); // Chu kỳ 20 giây
 }
     // ================= [ LỆNH !DAU - CHI TIẾT CỰC HẠN ] =================
     if (command === 'dau' || command === 'pvp') {
@@ -243,14 +220,13 @@ if (command === 'pkauto') {
         });
     }
    if (command === 'bat' || command === 'batpokemon') {
-    // Xóa lệnh gõ !bat của người dùng ngay lập tức
-    message.delete().catch(() => {});
+    message.delete().catch(() => {}); // Xóa lệnh gõ cho sạch
 
-    if (!currentGlobalPokemon) return; // Không có con nào thì im lặng xóa chat là xong
+    if (!currentGlobalPokemon) return;
 
-    const guestName = args[0]?.toLowerCase();
+    const guess = args[0]?.toLowerCase();
     
-    if (guestName === currentGlobalPokemon.name) {
+    if (guess === currentGlobalPokemon.name) {
         if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
         db[userId].hop.push({
@@ -261,17 +237,15 @@ if (command === 'pkauto') {
         db[userId].money += 200;
         db[userId].catchCount += 1;
 
-        // Xóa tin nhắn spawn
+        // Xóa ảnh Pokemon
         if (currentGlobalPokemon.message) {
             currentGlobalPokemon.message.delete().catch(() => {});
         }
 
-        const successMsg = await message.channel.send(`✨ **${message.author.username}** đã thu phục **${currentGlobalPokemon.name.toUpperCase()}** thành công!`);
+        const success = await message.channel.send(`✨ **${message.author.username}** bắt được **${currentGlobalPokemon.name.toUpperCase()}**! (+200 xu)`);
         
-        // 3 giây sau xóa thông báo thành công cho sạch kênh
-        setTimeout(() => successMsg.delete().catch(() => {}), 3000);
-
-        currentGlobalPokemon = null; 
+        currentGlobalPokemon = null; // Reset để chờ con sau
+        setTimeout(() => success.delete().catch(() => {}), 3000);
     }
 }
     // ================= [ LỆNH !HOP / !CHECK - BẢN ĐẸP ] =================

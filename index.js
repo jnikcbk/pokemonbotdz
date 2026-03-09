@@ -249,7 +249,7 @@ function saveMarket() {
     }
 // ================= [ LỆNH PKAUTO - PHIÊN BẢN GỌN SẠCH ] =================
     if (command === 'pkauto') {
-        if (!message.member.permissions.has("ManageMessages")) return message.reply("❌ Quyền Admin mới bật được máy dò.");
+        if (!message.member.permissions.has("ManageMessages")) return message.reply("❌ ai hỏi mày à bảo thg admin bật cho ngu vl.");
 
         if (pkAuto) {
             clearInterval(pkAuto);

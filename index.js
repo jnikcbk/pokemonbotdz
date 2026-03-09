@@ -10,36 +10,63 @@ const client = new Client({
     ] 
 });
 const regions = [
-    { name: "Kanto", champ: "Blue", cpoke: "Blastoise", elite: "Lance", epoke: "Dragonite", start: 10 },
-    { name: "Johto", champ: "Red", cpoke: "Pikachu", elite: "Karen", epoke: "Umbreon", start: 110 },
-    { name: "Hoenn", champ: "Steven", cpoke: "Metagross", elite: "Drake", epoke: "Salamence", start: 210 },
-    { name: "Sinnoh", champ: "Cynthia", cpoke: "Garchomp", elite: "Lucian", epoke: "Alakazam", start: 310 },
-    { name: "Unova", champ: "Iris", cpoke: "Haxorus", elite: "Shauntal", epoke: "Chandelure", start: 410 },
-    { name: "Kalos", champ: "Diantha", cpoke: "Gardevoir", elite: "Malva", epoke: "Pyroar", start: 510 },
-    { name: "Alola", champ: "Kukui", cpoke: "Incineroar", elite: "Hala", epoke: "Crabominable", start: 610 },
-    { name: "Galar", champ: "Leon", cpoke: "Charizard", elite: "Raihan", epoke: "Duraludon", start: 710 },
-    { name: "Paldea", champ: "Geeta", cpoke: "Glimmora", elite: "Hassel", epoke: "Baxcalibur", start: 810 }
+    { name: "Kanto", champ: "Blue", cpoke: "Blastoise", elite: "Lance", epoke: "Dragonite" },
+    { name: "Johto", champ: "Red", cpoke: "Pikachu", elite: "Karen", epoke: "Umbreon" },
+    { name: "Hoenn", champ: "Steven", cpoke: "Metagross", elite: "Drake", epoke: "Salamence" },
+    { name: "Sinnoh", champ: "Cynthia", cpoke: "Garchomp", elite: "Lucian", epoke: "Alakazam" },
+    { name: "Unova", champ: "Iris", cpoke: "Haxorus", elite: "Shauntal", epoke: "Chandelure" },
+    { name: "Kalos", champ: "Diantha", cpoke: "Gardevoir", elite: "Malva", epoke: "Pyroar" },
+    { name: "Alola", champ: "Kukui", cpoke: "Incineroar", elite: "Hala", epoke: "Crabominable" },
+    { name: "Galar", champ: "Leon", cpoke: "Charizard", elite: "Raihan", epoke: "Duraludon" },
+    { name: "Paldea", champ: "Geeta", cpoke: "Glimmora", elite: "Hassel", epoke: "Baxcalibur" }
 ];
 
 const gymThemes = ["Đá", "Nước", "Điện", "Cỏ", "Độc", "Tâm Linh", "Lửa", "Đất", "Băng", "Rồng", "Thép", "Côn Trùng", "Ma", "Đấu Sĩ", "Bay", "Tiên", "Bóng Tối", "Thường"];
 const gymData = [];
 
-regions.forEach((reg) => {
+regions.forEach((reg, regIdx) => {
     let themes = [...gymThemes].sort(() => 0.5 - Math.random());
-    for (let i = 1; i <= 8; i++) {
+    for (let i = 1; i <= 10; i++) {
+        const globalIdx = (regIdx * 10) + i; // ID chạy từ 1 đến 90
+        
+        // --- CÔNG THỨC SỨC MẠNH CẤP SỐ NHÂN ---
+        // Bậc 1: 500 | Bậc 80: ~10,000,000
+        // Hệ số tăng trưởng mỗi bậc là ~13.2%
+        let powerLevel = Math.floor(500 * Math.pow(1.132, globalIdx - 1));
+        
+        // Phần thưởng tiền tương xứng (khoảng 15% sức mạnh)
+        let rewardMoney = Math.floor(powerLevel * 0.15);
+
+        let type = "GYM";
+        let leaderName = `Thủ Lĩnh ${reg.name} #${i}`;
+        let poke = "Eevee"; // Mặc định, sẽ đổi cho Elite/Champ
+
+        // Bậc 9 mỗi Gen là Elite Four
+        if (i === 9) {
+            type = "ELITE";
+            leaderName = `Elite ${reg.elite}`;
+            poke = reg.epoke;
+            powerLevel = Math.floor(powerLevel * 1.2); // Tứ hoàng mạnh hơn 20% mốc bậc đó
+        }
+        // Bậc 10 mỗi Gen là Champion
+        if (i === 10) {
+            type = "CHAMP";
+            leaderName = `CHAMPION ${reg.champ}`;
+            poke = reg.cpoke;
+            powerLevel = Math.floor(powerLevel * 1.5); // Champion mạnh hơn 50% mốc bậc đó
+        }
+
         gymData.push({
-            id: gymData.length + 1,
+            id: globalIdx,
             region: reg.name,
-            name: `Hội Quán ${themes[i-1]}`,
-            leader: `Thủ Lĩnh ${reg.name} #${i}`,
-            poke: "Eevee",
-            lv: reg.start + (i * 10),
-            reward: (reg.start + i * 10) * 150,
-            type: "GYM"
+            name: i <= 8 ? `Hội Quán ${themes[i-1]}` : (i === 9 ? "Điện Thờ Tứ Hoàng" : "Đấu Trường Vô Địch"),
+            leader: leaderName,
+            poke: poke,
+            lv: powerLevel, // Lưu sức mạnh khổng lồ vào biến lv
+            reward: rewardMoney,
+            type: type
         });
     }
-    gymData.push({ id: gymData.length + 1, region: reg.name, name: `Điện Thờ Tứ Hoàng`, leader: `Elite ${reg.elite}`, poke: reg.epoke, lv: reg.start + 95, reward: (reg.start + 95) * 400, type: "ELITE" });
-    gymData.push({ id: gymData.length + 1, region: reg.name, name: `Đấu Trường Vô Địch`, leader: `CHAMPION ${reg.champ}`, poke: reg.cpoke, lv: reg.start + 115, reward: (reg.start + 115) * 800, type: "CHAMP" });
 });
 // --- PHẦN QUAN TRỌNG: ĐỌC DỮ LIỆU TỪ FILE ---
 let db = {};
@@ -241,7 +268,7 @@ function saveMarket() {
             .setDescription('Chào mừng HLV! Dưới đây là các lệnh đang hoạt động:')
             .addFields(
                 { name: '🐾 SĂN BẮT & QUẢN LÝ', value: '`!bat [tên]`: Bắt Pokemon đang hiện.\n`!hop`: Xem túi đồ & Pokemon.\n`!phongsinh [tên]`: Thả Pokemon nhận 100 xu.' },
-                { name: '⚔️ CHIẾN ĐẤU & PHÁT TRIỂN', value: '`!dau @user [tên]`: Thách đấu người khác.\n`!train [tên]`: Tăng Level (Max 1000).\n`!ev [tên]`: Tiến hóa (Lv 30+).', inline: false },
+                { name: '⚔️ CHIẾN ĐẤU & PHÁT TRIỂN', value: '`!dau @user [tên]`: Thách đấu người khác.\n`!train [tên]`: Tăng Level (Max 1000).\n`!ev [tên]`: Tiến hóa (Lv 30+).\n`!hoiquan [ib]', inline: false },
                 { name: '💰 KINH TẾ', value: '`!daily`: Nhận trợ cấp hàng ngày.\n`!choden`: Xem chợ.\n`!mua [mã]`: Mua hàng.\n`!trade @user [tên_mình] [tên_họ]`: Trao đổi.', inline: false },
                 { name: '📊 THỐNG KÊ', value: '`!pkshiny`: Bảng vàng Shiny.\n`!toppk`: BXH đại gia.\n`!pokedex`: Tra cứu danh sách.', inline: true },
                 { name: '🛠️ ADMIN', value: '`!pkauto`: Bật máy dò.\n`!addpk`, `!addxuvang`, `!adclear`.', inline: true }
@@ -849,13 +876,13 @@ if (command === 'bat' || command === 'batpokemon') {
             message.reply("❌ Lỗi khi lấy danh sách Pokémon!");
         }
     }
-    // ================= [ LỆNH !HOIQUAN - 9 GEN x 10 BẬC ] =================
+   // ================= [ LỆNH !HOIQUAN - LOGIC SỨC MẠNH KHỦNG ] =================
     if (command === 'hoiquan' || command === 'gym') {
         const userData = db[userId];
         const arg1 = args[0]; 
         const myPokeName = args.slice(1).join(" ").toLowerCase();
 
-        // 1. HIỂN THỊ DANH SÁCH THEO GEN (Ví dụ: !hoiquan 1)
+        // 1. HIỂN THỊ DANH SÁCH THEO GEN
         if (!arg1 || (parseInt(arg1) <= 9 && !myPokeName)) {
             const genIdx = (parseInt(arg1) || 1) - 1;
             const region = regions[genIdx];
@@ -865,60 +892,66 @@ if (command === 'bat' || command === 'batpokemon') {
                 .setTitle(`🗺️ LỘ TRÌNH CHINH PHỤC VÙNG ${region.name.toUpperCase()}`)
                 .setColor('#f1c40f')
                 .setThumbnail('https://i.imgur.com/G9L6RGo.gif')
-                .setDescription(`Mỗi vùng có 10 thử thách từ yếu đến mạnh.\nĐánh bại **Champion** để nhận thưởng lớn!\n\n**Cú pháp đánh:** \`!hoiquan [ID] [Tên_Pokemon_Của_Ông]\``)
+                .setDescription(`Sức mạnh Boss tăng tiến theo cấp số nhân!\n\n**Cú pháp đánh:** \`!hoiquan [ID] [Tên_Pokemon]\``)
                 .addFields({
                     name: `Danh sách bậc thềm sức mạnh (Gen ${genIdx + 1}):`,
                     value: currentGyms.map(g => {
                         let icon = g.type === 'CHAMP' ? '👑' : (g.type === 'ELITE' ? '🔥' : '🛡️');
-                        return `\`ID: ${g.id.toString().padStart(2, '0')}\` ${icon} **${g.name}** - Lv.${g.lv}`;
+                        return `\`ID: ${g.id.toString().padStart(2, '0')}\` ${icon} **${g.name}** - 💪 \`${g.lv.toLocaleString()}\``;
                     }).join('\n')
                 })
-                .setFooter({ text: `Xem vùng khác: !hoiquan [1-9] | Ví dụ: !hoiquan 2` });
+                .setFooter({ text: `Xem vùng khác: !hoiquan [1-9]` });
 
             return message.reply({ embeds: [listEmbed] });
         }
 
-        // 2. LOGIC CHIẾN ĐẤU (Ví dụ: !hoiquan 1 pikachu)
+        // 2. LOGIC CHIẾN ĐẤU CÂN BẰNG SỨC MẠNH 10 TRIỆU
         const gymId = parseInt(arg1);
         const target = gymData.find(g => g.id === gymId);
         
-        if (!target) return message.reply("❌ ID Hội Quán không tồn tại! Gõ `!hoiquan` để xem danh sách.");
-        if (!myPokeName) return message.reply(`📝 Ông định dùng con nào? Cú pháp: \`!hoiquan ${gymId} [tên_pokemon]\``);
+        if (!target) return message.reply("❌ ID Hội Quán không tồn tại!");
+        if (!myPokeName) return message.reply(`📝 Nhập tên Pokemon của ông! Ví dụ: \`!hoiquan ${gymId} pikachu\``);
 
         const myIdx = userData.hop.findIndex(p => p.name.toLowerCase() === myPokeName);
-        if (myIdx === -1) return message.reply(`❌ Ông không sở hữu con **${myPokeName.toUpperCase()}** nào trong túi!`);
+        if (myIdx === -1) return message.reply(`❌ Ông không có con **${myPokeName.toUpperCase()}** nào!`);
 
         const myPoke = userData.hop[myIdx];
         
-        // Tính toán lực chiến (Lv + Random + Bonus Shiny)
-        const myPower = myPoke.level + Math.floor(Math.random() * 30) + (myPoke.shiny ? 40 : 0);
-        const enemyPower = target.lv + Math.floor(Math.random() * 20);
+        /** * TÍNH LỰC CHIẾN NGƯỜI CHƠI:
+         * Để đấu được với 10 triệu, mỗi Level của Pokemon phải đáng giá.
+         * Công thức: (Level^3.5) + Random. Level 100 sẽ có ~316k, Level 500 sẽ có ~27 triệu.
+         */
+        let myBasePower = Math.floor(Math.pow(myPoke.level, 3.5));
+        if (myPoke.shiny) myBasePower *= 1.5; // Shiny mạnh gấp rưỡi
 
+        const myPower = myBasePower + Math.floor(Math.random() * (myBasePower * 0.2));
+        const enemyPower = target.lv; // Lấy mốc LC khổng lồ đã cài đặt ở gymData
+// Trong lệnh !hoiquan, hãy sửa dòng myPower thành:
+const myPower = (myPoke.level * 1000) + Math.floor(Math.random() * 5000) + (myPoke.shiny ? 50000 : 0);
         const battleEmbed = new EmbedBuilder()
-            .setTitle(`${target.type === 'CHAMP' ? '🏆 TRẬN CHIẾN CUỐI CÙNG' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
+            .setTitle(`${target.type === 'CHAMP' ? '🏆 ĐẠI CHIẾN VÔ ĐỊCH' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
             .setDescription(`**${message.author.username}** đối đầu với **${target.leader}**!`)
             .addFields(
-                { name: `🔵 BẠN: ${myPoke.name.toUpperCase()}`, value: `💪 Lực chiến: \`${myPower}\``, inline: true },
+                { name: `🔵 BẠN: ${myPoke.name.toUpperCase()} (Lv.${myPoke.level})`, value: `💪 LC: \`${myPower.toLocaleString()}\``, inline: true },
                 { name: 'VS', value: '⚡', inline: true },
-                { name: `🔴 ĐỐI THỦ: ${target.leader}`, value: `💪 Lực chiến: \`${enemyPower}\``, inline: true }
+                { name: `🔴 ĐỐI THỦ: ${target.leader}`, value: `💪 LC: \`${enemyPower.toLocaleString()}\``, inline: true }
             )
             .setThumbnail(`https://img.pokemondb.net/artwork/large/${target.poke.toLowerCase()}.jpg`)
             .setTimestamp();
 
+        // XỬ LÝ KẾT QUẢ
         if (myPower >= enemyPower) {
-            // Thắng
             userData.money += target.reward;
             saveDB();
 
             battleEmbed.setColor('#2ecc71').addFields({ 
                 name: '🏆 KẾT QUẢ: THẮNG LỢI!', 
-                value: `Ông đã vượt qua **${target.name}**!\n💰 Tiền thưởng: \`+${target.reward.toLocaleString()} xu\`` 
+                value: `Sức mạnh của ông đã đè bẹp đối thủ!\n💰 Tiền thưởng: \`+${target.reward.toLocaleString()} xu\`` 
             });
         } else {
-            // Thua
             battleEmbed.setColor('#e74c3c').addFields({ 
                 name: '💀 KẾT QUẢ: THẤT BẠI!', 
-                value: `Sức mạnh của **${target.poke}** quá lớn. Hãy dùng lệnh \`!train\` để mạnh hơn!` 
+                value: `Ông còn thiếu khoảng \`${(enemyPower - myPower).toLocaleString()}\` sức mạnh nữa. Hãy tiếp tục \`!train\`!` 
             });
         }
 

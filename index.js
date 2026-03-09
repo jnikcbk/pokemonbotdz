@@ -28,10 +28,6 @@ if (fs.existsSync(DB_PATH)) {
     }
 }
 
-// Hàm lưu dữ liệu (Dùng sau mỗi lần thay đổi tiền hoặc túi đồ)
-function saveDB() {
-    fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 4));
-}
 
 let pkAuto = null; // Quản lý 1 vòng lặp duy nhất
 let currentGlobalPokemon = null; 

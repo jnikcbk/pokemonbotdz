@@ -67,6 +67,59 @@ if (fs.existsSync(MARKET_PATH)) {
 function saveMarket() {
     fs.writeFileSync(MARKET_PATH, JSON.stringify(market, null, 4));
 }
+    // ================= [ LỆNH !PKSHINY - BẢNG VÀNG SHINY TOÀN SERVER ] =================
+    if (command === 'pkshiny' || command === 'allshiny') {
+        let allShiny = [];
+
+        // 1. Duyệt qua tất cả người dùng trong Database
+        for (const userId in db) {
+            const userData = db[userId];
+            if (userData.hop && Array.isArray(userData.hop)) {
+                // Lọc ra các con Shiny trong túi của người này
+                const userShinies = userData.hop.filter(p => p.shiny === true);
+                
+                // Thêm vào danh sách tổng kèm tên chủ sở hữu
+                userShinies.forEach(p => {
+                    allShiny.push({
+                        name: p.name,
+                        level: p.level,
+                        ownerId: userId,
+                        // Nếu không có ngày bắt thì để "Không rõ"
+                        date: p.date || p.catchDate || "Đã lâu"
+                    });
+                });
+            }
+        }
+
+        if (allShiny.length === 0) {
+            return message.reply("😭 Server này chưa ai đủ nhân phẩm để bắt được **Shiny** cả!");
+        }
+
+        // 2. Sắp xếp: Con nào Level cao nhất lên đầu
+        allShiny.sort((a, b) => b.level - a.level);
+
+        const page = parseInt(args[0]) || 1;
+        const itemsPerPage = 10;
+        const totalPages = Math.ceil(allShiny.length / itemsPerPage);
+        const start = (page - 1) * itemsPerPage;
+        const currentList = allShiny.slice(start, start + itemsPerPage);
+
+        if (currentList.length === 0) return message.reply("Trang này trống!");
+
+        const displayList = currentList.map((p, i) => {
+            return `\`${start + i + 1}.\` ✨ **${p.name.toUpperCase()}** (Lvl ${p.level})\n└ Chủ sở hữu: <@${p.ownerId}>`;
+        }).join("\n\n");
+
+        const allShinyEmbed = new EmbedBuilder()
+            .setTitle('🏆 BẢNG VÀNG POKÉMON SHINY SERVER 🏆')
+            .setColor('#f1c40f')
+            .setThumbnail('https://i.imgur.com/vHdfZfC.png')
+            .setDescription(`Tổng cộng server đã săn được: **${allShiny.length}** con Shiny!\n\n${displayList}`)
+            .setFooter({ text: `Trang ${page}/${totalPages} | Những kẻ may mắn nhất server` })
+            .setTimestamp();
+
+        return message.reply({ embeds: [allShinyEmbed] });
+    }
   // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION + CHỢ ĐEN ] =================
     if (command === 'phelp') {
         const helpEmbed = new EmbedBuilder()

@@ -59,95 +59,260 @@ client.on('messageCreate', async message => {
         };
         saveDB(); // Lưu ngay người dùng mới vào file
     }
-
-    // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION ] =================
+const MARKET_PATH = './market.json';
+let market = [];
+if (fs.existsSync(MARKET_PATH)) {
+    market = JSON.parse(fs.readFileSync(MARKET_PATH, 'utf-8'));
+}
+function saveMarket() {
+    fs.writeFileSync(MARKET_PATH, JSON.stringify(market, null, 4));
+}
+  // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION + CHỢ ĐEN ] =================
     if (command === 'phelp') {
         const helpEmbed = new EmbedBuilder()
             .setTitle('🎮 POKÉMON BOT - CẨM NANG TOÀN TẬP')
             .setColor('#e74c3c')
             .setThumbnail('https://i.imgur.com/vHdfZfC.png')
-            .setDescription('Chào mừng ông đến với thế giới Pokémon! Dưới đây là danh sách lệnh đã được nâng cấp:')
+            .setDescription('Chào mừng ông đến với thế giới Pokémon! Dưới đây là danh sách lệnh đã được nâng cấp hệ thống **Shiny** và **Chợ Đen**:')
             .addFields(
                 { 
-                    name: '🐾 SĂN BẮT & TRA CỨU', 
-                    value: '`!pkauto`: Bật/Tắt tự động xuất hiện Pokémon.\n`!bat [tên]`: Thu phục Pokémon đang xuất hiện.\n`!pokedex [trang]`: Xem danh sách ID và tên Pokémon.' 
+                    name: '🐾 SĂN BẮT & PHÁT TRIỂN', 
+                    value: '`!pkauto`: Bật/Tắt tự động xuất hiện Pokémon.\n`!bat [tên]`: Thu phục Pokémon (Có tỉ lệ **Shiny ✨**).\n`!hop [trang]`: Xem túi đồ, số dư và trạng thái Shiny.\n`!train [tên]`: Huấn luyện (Max Lvl 1000).' 
                 },
                 { 
-                    name: '📦 QUẢN LÝ & PHÁT TRIỂN', 
-                    value: '`!hop`: Kiểm tra túi đồ và số dư.\n`!train [tên]`: Huấn luyện tăng cấp (Phí tăng theo Level).\n`!ev [tên]`: Tiến hóa khi đạt cấp độ yêu cầu.\n`!phongsinh [tên]`: Thả Pokémon nhận lại xu.' 
+                    name: '🛒 THƯƠNG MẠI (CHỢ ĐEN)', 
+                    value: '`!choden`: Xem danh sách Pokémon hiếm đang bán.\n`!mua [mã_số]`: Mua Pokémon từ Chợ Đen bằng xu.' 
                 },
                 { 
-                    name: '⚔️ ĐẤU TRƯỜNG & BXH', 
-                    value: '`!dau @user [tên]`: Thách đấu PvP cực kịch tính.\n`!toppk`: Bảng xếp hạng những cao thủ săn bắt hàng đầu.\n`!daily`: Điểm danh nhận quà hàng ngày.' 
+                    name: '⚔️ ĐẤU TRƯỜNG & TIỆN ÍCH', 
+                    value: '`!dau @user [tên]`: Thách đấu PvP.\n`!ev [tên]`: Tiến hóa Pokémon.\n`!daily`: Nhận xu miễn phí mỗi ngày.' 
                 },
                 { 
-                    name: '🛡️ QUYỀN HẠN ADMIN (QUẢN TRỊ)', 
-                    value: '`!addpk @user [Tên/ID] [Lvl]`: Tặng Pokémon cho người chơi.\n`!addxuvang @user [số_tiền]`: Cấp thêm xu vàng vào tài khoản.\n`!buypkvip' 
+                    name: '🛡️ QUYỀN HẠN ADMIN', 
+                    value: '`!adsale [tên] [giá] [lvl] [shiny]`: Treo hàng lên Chợ Đen.\n`!addpk @user [tên] [lvl] [shiny]`: Tặng Pokémon.\n`!adclear`: Dọn sạch vật phẩm trên Chợ Đen.' 
                 }
             )
             .addFields({ 
                 name: '💡 Mẹo Nhỏ', 
-                value: 'Sử dụng `!pokedex` để biết ID Pokémon, sau đó Admin có thể dùng ID đó để `!addpk` cực nhanh!' 
+                value: 'Pokémon **Shiny ✨** có giá trị rất cao trên Chợ Đen và hiển thị lấp lánh trong túi đồ!' 
             })
             .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
 
         return message.reply({ embeds: [helpEmbed] });
     }
-// ================= [ LỆNH !PKAUTO - FIX 1 KÊNH CỐ ĐỊNH ] =================
-if (command === 'pkauto') {
-    // Nếu đang chạy thì tắt hẳn
-    if (pkAuto) {
-        clearInterval(pkAuto);
-        pkAuto = null;
-        currentGlobalPokemon = null;
-        return message.channel.send("🛑 **ĐÃ TẮT CHẾ ĐỘ TỰ ĐỘNG SPAWN.**");
-    }
+// ================= [ LỆNH !PKAUTO - SPEED 20S + FULL OPTION ] =================
+    if (command === 'pkauto') {
+        if (!message.member.permissions.has("ManageMessages")) return message.reply("❌ Cút! Quyền Admin mới bật được máy dò Pokémon.");
 
-    // Lưu đúng cái kênh ông vừa gõ lệnh vào một biến
-    const spawnChannel = message.channel;
-
-    message.channel.send(`🚀 **BẮT ĐẦU SPAWN TẠI KÊNH:** ${spawnChannel}\n⏱️ Chu kỳ: **20 giây/con**`);
-
-    pkAuto = setInterval(async () => {
-        // Xóa con cũ nếu có
-        if (currentGlobalPokemon && currentGlobalPokemon.message) {
-            currentGlobalPokemon.message.delete().catch(() => {});
+        if (pkAuto) {
+            clearInterval(pkAuto);
+            pkAuto = null;
+            return message.reply("🛑 **Đã TẮT** tự động xuất hiện Pokémon.");
         }
 
-        const randomId = Math.floor(Math.random() * 898) + 1;
-        const randomLevel = Math.floor(Math.random() * 100) + 1;
+        const spawnChannel = message.channel;
+        message.reply(`✅ **Đã BẬT** máy dò siêu tốc (20 giây/con) tại <#${spawnChannel.id}>!`);
+
+        pkAuto = setInterval(async () => {
+            // 1. Dọn dẹp tin nhắn cũ để kênh không bị rác
+            if (currentGlobalPokemon && currentGlobalPokemon.message) {
+                currentGlobalPokemon.message.delete().catch(() => {});
+            }
+
+            // 2. Random: ID (1-898), Level (Max 50 khi spawn), Tỉ lệ Shiny (1/50)
+            const randomId = Math.floor(Math.random() * 898) + 1;
+            const randomLevel = Math.floor(Math.random() * 50) + 1; // Giới hạn Lv 50
+            const isShiny = Math.random() < 1/50;
+
+            try {
+                const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
+                const pokeName = res.data.name;
+                const types = res.data.types.map(t => t.type.name).join(", ").toUpperCase();
+                
+                // Lấy ảnh Artwork xịn, nếu không có lấy ảnh Pixel thay thế
+                let spriteUrl = isShiny 
+                    ? res.data.sprites.other['official-artwork'].front_shiny 
+                    : res.data.sprites.other['official-artwork'].front_default;
+                
+                if (!spriteUrl) {
+                    spriteUrl = isShiny ? res.data.sprites.front_shiny : res.data.sprites.front_default;
+                }
+
+                // 3. Thiết kế Embed chi tiết
+                const autoEmbed = new EmbedBuilder()
+                    .setTitle(`${isShiny ? '✨ SHINY ' : '🐾'} POKÉMON XUẤT HIỆN! ✨`)
+                    .setColor(isShiny ? '#f1c40f' : '#3498db')
+                    .setDescription(isShiny 
+                        ? `🌟 **CỰC HIẾM!** Một con **${pokeName.toUpperCase()}** lấp lánh vừa lộ diện!` 
+                        : `Một con **${pokeName.toUpperCase()}** hoang dã vừa nhảy ra!`)
+                    .addFields(
+                        { name: '🆔 Tên', value: `\`${pokeName.toUpperCase()}\``, inline: true },
+                        { name: '🆙 Cấp độ', value: `\`Lvl ${randomLevel}\``, inline: true },
+                        { name: '🧬 Hệ', value: `\`${types}\``, inline: true },
+                        { name: '💎 Độ hiếm', value: `\`${isShiny ? 'SHINY (Siêu hiếm ✨)' : 'Thường'}\``, inline: false }
+                    )
+                    .setImage(spriteUrl)
+                    .setThumbnail(isShiny ? 'https://i.imgur.com/vHdfZfC.png' : null)
+                    .setFooter({ text: "Gõ !bat [tên] để bắt! | Max Spawn: Lvl 50" })
+                    .setTimestamp();
+
+                // 4. Gửi tin nhắn (Tag @here nếu là Shiny cho mọi người tranh)
+                const content = isShiny ? "📢 **HÀNG HIẾM @here! MAU LÊN!**" : null;
+                const sMsg = await spawnChannel.send({ content: content, embeds: [autoEmbed] });
+
+                // 5. Lưu dữ liệu cho lệnh !bat sử dụng
+                currentGlobalPokemon = { 
+                    name: pokeName.toLowerCase(), 
+                    level: randomLevel, 
+                    isShiny: isShiny,
+                    message: sMsg 
+                };
+
+            } catch (error) {
+                console.error("Lỗi API:", error.message);
+            }
+        }, 20000); // <--- Đã chỉnh chuẩn 20 giây (20000ms)
+    }
+    // ================= [ LỆNH ADMIN: TREO BÁN ĐỒ CHỢ ĐEN ] =================
+    if (command === 'adsale') {
+        // Chỉ Admin (có quyền Quản lý tin nhắn) mới được dùng
+        if (!message.member.permissions.has("ManageMessages")) return message.reply("❌ Cút! Chợ Đen chỉ dành cho Trùm (Admin) treo hàng.");
+
+        const pokeNameInput = args[0]?.toLowerCase();
+        const price = parseInt(args[1]);
+        const level = parseInt(args[2]) || 1;
+        const isShiny = args[3]?.toLowerCase() === 'shiny';
+
+        if (!pokeNameInput || isNaN(price)) {
+            return message.reply("📝 Cú pháp: `!adsale [tên] [giá] [level] [shiny/thuong]`\nVí dụ: `!adsale mewtwo 100000 500 shiny` ");
+        }
 
         try {
-            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
-            const pokeName = res.data.name;
-            const pokeType = res.data.types[0].type.name;
+            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokeNameInput}`);
+            const realName = res.data.name;
+            const saleId = Math.floor(Math.random() * 9000) + 1000;
 
-            const autoEmbed = new EmbedBuilder()
-                .setTitle(`✨ POKÉMON XUẤT HIỆN: ${pokeName.toUpperCase()} ✨`)
-                .setColor('#f1c40f')
-                .addFields(
-                    { name: '🆙 Cấp độ', value: `\`Lvl ${randomLevel}\``, inline: true },
-                    { name: '🧬 Hệ', value: `\`${pokeType.toUpperCase()}\``, inline: true },
-                    { name: '📊 Chỉ số', value: `❤️ HP: \`${50 + randomLevel * 2}\` | ⚔️ ATK: \`${10 + Math.floor(randomLevel * 1.2)}\`` }
-                )
-                .setImage(res.data.sprites.other['official-artwork'].front_default)
-                .setFooter({ text: "Gõ !bat [tên] để thu phục!" })
-                .setTimestamp();
-
-            // LUÔN GỬI VÀO CÁI KÊNH ĐÃ SETUP
-            const sMsg = await spawnChannel.send({ embeds: [autoEmbed] });
-
-            currentGlobalPokemon = { 
-                name: pokeName.toLowerCase(), 
-                level: randomLevel, 
-                message: sMsg 
+            const newItem = {
+                saleId: saleId,
+                name: realName,
+                price: price,
+                level: level,
+                shiny: isShiny,
+                seller: "HỆ THỐNG ADMIN"
             };
 
+            market.push(newItem);
+            saveMarket();
+
+            message.reply(`✅ Đã treo **${isShiny ? '✨ SHINY ' : ''}${realName.toUpperCase()}** (Lvl ${level}) lên Chợ Đen với giá \`${price.toLocaleString()} xu\`. Mã: \`#${saleId}\``);
         } catch (e) {
-            console.log("Lỗi spawn: " + e.message);
+            message.reply("❌ Tên Pokemon không đúng hoặc lỗi kết nối API!");
         }
-    }, 20000); // Chu kỳ 20 giây
+    }
+
+    // ================= [ LỆNH MEMBER: XEM CHỢ ĐEN ] =================
+    if (command === 'choden' || command === 'blackmarket') {
+        if (market.length === 0) return message.reply("🛒 Chợ Đen hôm nay chưa có hàng lậu sếp ơi!");
+
+        const marketList = market.map((item) => {
+            return `\`#${item.saleId}\` ┃ ${item.shiny ? '✨' : '🐾'} **${item.name.toUpperCase()}** \`Lvl ${item.level}\`\n💰 Giá: \`${item.price.toLocaleString()} xu\`\n------------------`;
+        }).join("\n");
+
+        const marketEmbed = new EmbedBuilder()
+            .setTitle('🕶️ THỊ TRƯỜNG CHỢ ĐEN (ADMIN ONLY SALE)')
+            .setColor('#2c3e50')
+            .setDescription(`Chào mừng các HLV đến với nơi giao dịch hàng lậu!\n\n${marketList}`)
+            .setFooter({ text: 'Dùng !mua [mã_số] để chốt đơn' })
+            .setTimestamp();
+
+        message.channel.send({ embeds: [marketEmbed] });
+    }
+
+    // ================= [ LỆNH MEMBER: MUA HÀNG ] =================
+    if (command === 'mua') {
+        const saleId = parseInt(args[0]);
+        if (!saleId) return message.reply("Nhập mã số món hàng! (Ví dụ: `!mua 1234`) ");
+
+        const itemIdx = market.findIndex(i => i.saleId === saleId);
+        if (itemIdx === -1) return message.reply("❌ Mã hàng này không tồn tại!");
+
+        const item = market[itemIdx];
+
+        // Khởi tạo DB cho người mua nếu chưa có
+        if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
+
+        if (db[userId].money < item.price) {
+            return message.reply(`💸 Ông không đủ tiền! Cần \`${item.price.toLocaleString()} xu\`.`);
+        }
+
+        // Thực hiện giao dịch
+        db[userId].money -= item.price; 
+        db[userId].hop.push({
+            name: item.name,
+            level: item.level,
+            shiny: item.shiny,
+            date: new Date().toLocaleDateString('vi-VN')
+        });
+
+        // Xóa khỏi chợ đen
+        market.splice(itemIdx, 1);
+        
+        saveDB();    // Lưu tiền/túi người mua
+        saveMarket(); // Lưu trạng thái chợ
+        
+        message.reply(`🎉 Chúc mừng ông đã tậu thành công **${item.shiny ? '✨ ' : ''}${item.name.toUpperCase()}** (Lvl ${item.level}) từ Chợ Đen!`);
+    }
+
+    // ================= [ LỆNH ADMIN: DỌA CHỢ (XÓA HÀNG) ] =================
+    if (command === 'adclear') {
+        if (!message.member.permissions.has("ManageMessages")) return;
+        market = [];
+        saveMarket();
+        message.reply("🧹 Đã dọn sạch Chợ Đen!");
+    }
+    if (command === 'hop' || command === 'check') {
+    const target = message.mentions.users.first() || message.author;
+    if (!db[target.id]) {
+        db[target.id] = { money: 5000, hop: [], catchCount: 0 };
+        saveDB();
+    }
+
+    const userData = db[target.id];
+    if (!userData.hop || userData.hop.length === 0) {
+        return message.reply(`❌ **${target.username}** chưa có Pokémon nào. Mau đi bắt đi ông!`);
+    }
+
+    const page = parseInt(args[0]) || 1;
+    const itemsPerPage = 5; // Để 5 con 1 trang cho đẹp và thoáng
+    const totalPages = Math.ceil(userData.hop.length / itemsPerPage);
+    const start = (page - 1) * itemsPerPage;
+    const currentItems = userData.hop.slice(start, start + itemsPerPage);
+
+    if (currentItems.length === 0) return message.reply(`Trang này trống rỗng!`);
+
+    const pokemonList = currentItems.map((p, i) => {
+        // Thanh Level đẹp mắt
+        const progress = Math.floor((p.level / 100) * 10);
+        const bar = "▶️" + "▬".repeat(progress) + "🔘" + "▬".repeat(10 - progress);
+        const shinyTag = p.shiny ? "✨ **[SHINY]** " : "🐾 ";
+        
+        return `${shinyTag}**${p.name.toUpperCase()}** (ID: \`#${start + i + 1}\`)\n\`LV. ${p.level}\` ${bar}\n`;
+    }).join("\n");
+
+    const hopEmbed = new EmbedBuilder()
+        .setAuthor({ name: `HỒ SƠ HUẤN LUYỆN VIÊN`, iconURL: target.displayAvatarURL() })
+        .setTitle(`🎒 TÚI ĐỒ CỦA ${target.username.toUpperCase()}`)
+        .setColor(target.id === message.author.id ? '#3498db' : '#e74c3c')
+        .addFields(
+            { name: '💳 Tài chính', value: `\`${userData.money.toLocaleString()} xu\``, inline: true },
+            { name: '🏆 Kỷ lục', value: `\`${userData.catchCount} con\``, inline: true }
+        )
+        .setDescription(`--- **DANH SÁCH POKÉMON** ---\n\n${pokemonList}`)
+        .setFooter({ text: `Trang ${page}/${totalPages} | Tổng: ${userData.hop.length} Pokémon` })
+        .setTimestamp();
+
+    return message.reply({ embeds: [hopEmbed] });
 }
     // ================= [ LỆNH !DAU - CHI TIẾT CỰC HẠN ] =================
     if (command === 'dau' || command === 'pvp') {
@@ -242,8 +407,8 @@ if (command === 'pkauto') {
             message.channel.send({ embeds: [resultEmbed] });
         });
     }
-   if (command === 'bat' || command === 'batpokemon') {
-    message.delete().catch(() => {}); // Xóa lệnh gõ cho sạch
+ if (command === 'bat' || command === 'batpokemon') {
+    message.delete().catch(() => {}); 
 
     if (!currentGlobalPokemon) return;
 
@@ -252,75 +417,38 @@ if (command === 'pkauto') {
     if (guess === currentGlobalPokemon.name) {
         if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
+        const isShiny = currentGlobalPokemon.isShiny || false;
+        
+        // Lưu vào túi đồ với đầy đủ thuộc tính
         db[userId].hop.push({
             name: currentGlobalPokemon.name,
-            level: currentGlobalPokemon.level
+            level: currentGlobalPokemon.level,
+            shiny: isShiny,
+            catchDate: new Date().toLocaleDateString('vi-VN')
         });
 
-        db[userId].money += 200;
+        const reward = isShiny ? 1500 : 200; // Shiny thưởng đậm hơn
+        db[userId].money += reward;
         db[userId].catchCount += 1;
-saveDB();
-        // Xóa ảnh Pokemon
-        if (currentGlobalPokemon.message) {
-            currentGlobalPokemon.message.delete().catch(() => {});
-        }
+        saveDB();
 
-        const success = await message.channel.send(`✨ **${message.author.username}** bắt được **${currentGlobalPokemon.name.toUpperCase()}**! (+200 xu)`);
+        const successEmbed = new EmbedBuilder()
+            .setTitle(isShiny ? '🌟 SIÊU PHẨM SHINY! 🌟' : '✅ THU PHỤC THÀNH CÔNG!')
+            .setColor(isShiny ? '#f1c40f' : '#2ecc71')
+            .setDescription(`Chúc mừng **${message.author.username}** đã bắt được **${currentGlobalPokemon.name.toUpperCase()}**!`)
+            .addFields(
+                { name: '📊 Chỉ số', value: `\`Lvl ${currentGlobalPokemon.level}\` | \`${isShiny ? 'Hệ: Shiny ✨' : 'Hệ: Thường'}\``, inline: true },
+                { name: '💰 Thưởng', value: `\`+${reward.toLocaleString()} xu\``, inline: true }
+            )
+            .setThumbnail(isShiny ? 'https://i.imgur.com/vHdfZfC.png' : null) // Thêm icon nhỏ nếu muốn
+            .setFooter({ text: 'Check túi đồ bằng lệnh !hop' });
+
+        const sMsg = await message.channel.send({ embeds: [successEmbed] });
         
-        currentGlobalPokemon = null; // Reset để chờ con sau
-        setTimeout(() => success.delete().catch(() => {}), 3000);
+        currentGlobalPokemon = null; 
+        setTimeout(() => sMsg.delete().catch(() => {}), 10000); // 10s sau tự xóa cho sạch
     }
 }
-  // ================= [ LỆNH !HOP / !CHECK - BẢN FIX LỖI ] =================
-    if (command === 'hop' || command === 'check') {
-        const target = message.mentions.users.first() || message.author;
-
-        // BƯỚC 1: Tự động khởi tạo nếu chưa có dữ liệu (Fix lỗi lúc dùng được lúc không)
-        if (!db[target.id]) {
-            db[target.id] = { 
-                money: 5000, 
-                hop: [], 
-                catchCount: 0 
-            };
-            saveDB(); // Lưu ngay vào file để đồng bộ
-        }
-
-        const userData = db[target.id];
-
-        // Kiểm tra nếu túi đồ trống
-        if (!userData.hop || userData.hop.length === 0) {
-            return message.reply(`❌ **${target.username}** hiện đang trắng tay, chưa có Pokémon nào!`);
-        }
-
-        // Logic phân trang (Giữ nguyên bản đẹp của ông)
-        const page = parseInt(args[0]) || 1;
-        const itemsPerPage = 10;
-        const totalPages = Math.ceil(userData.hop.length / itemsPerPage);
-        const start = (page - 1) * itemsPerPage;
-        const end = start + itemsPerPage;
-        const currentItems = userData.hop.slice(start, end);
-
-        if (currentItems.length === 0) return message.reply(`Trang này không có gì cả! Hộp của ông chỉ có ${totalPages} trang.`);
-
-        const pokemonList = currentItems.map((p, i) => {
-            const levelBar = "▓".repeat(Math.floor(p.level / 10)) + "░".repeat(10 - Math.floor(p.level / 10));
-            return `\`#${(start + i + 1).toString().padStart(2, '0')}\` **${p.name.toUpperCase()}** \`Lvl ${p.level}\`\n[${levelBar}]`;
-        }).join("\n\n");
-
-        const hopEmbed = new EmbedBuilder()
-            .setAuthor({ name: `HỒ SƠ HUẤN LUYỆN VIÊN: ${target.username.toUpperCase()}`, iconURL: target.displayAvatarURL() })
-            .setTitle(`📦 HỘP POKÉMON (Trang ${page}/${totalPages})`)
-            .setColor('#3498db')
-            .addFields(
-                { name: '💰 Tài chính', value: `💵 \`${userData.money.toLocaleString()} xu\``, inline: true },
-                { name: '🏆 Thành tựu', value: `⭐ \`${userData.catchCount} đã bắt\``, inline: true }
-            )
-            .setDescription(`\n${pokemonList}`)
-            .setFooter({ text: `Tổng cộng: ${userData.hop.length} Pokémon | Trang ${page}/${totalPages}` })
-            .setTimestamp();
-
-        return message.reply({ embeds: [hopEmbed] });
-    }
    // ================= [ LỆNH !BUYPKVIP - TỰ TẠO ROLE ] =================
     if (command === 'buypkvip' || command === 'vip') {
         const vipPrice = 100000; 
@@ -524,40 +652,51 @@ saveDB();
             message.reply("❌ Lỗi khi lấy danh sách Pokémon!");
         }
     }
-    if (command === 'addpokemon' || command === 'addpk') {
-        if (!message.member.permissions.has("ManageMessages")) return message.reply("Cút!");
+    if (command === 'addpk') {
+    if (!message.member.permissions.has("ManageMessages")) return message.reply("Cút! Lệnh này chỉ dành cho Admin.");
 
-        const target = message.mentions.users.first();
-        const input = args[1]; // Có thể là tên "pikachu" hoặc số "25"
-        const level = parseInt(args[2]) || 1;
+    const target = message.mentions.users.first();
+    const pokeInput = args[1]; 
+    const level = parseInt(args[2]) || 5;
+    const typeAttr = args[3]?.toLowerCase(); // Nhận 'shiny' hoặc 'thuong'
 
-        if (!target || !input) return message.reply("Dùng: `!addpokemon @user [Tên hoặc ID] [Level]`");
+    if (!target || !pokeInput) return message.reply("Cú pháp: `!addpk @user [tên] [level] [shiny/thuong]`");
 
-        try {
-            // Check API bằng ID hoặc Tên đều được
-            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${input.toLowerCase()}`);
-            const realName = res.data.name;
+    try {
+        const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokeInput.toLowerCase()}`);
+        const isShiny = typeAttr === 'shiny';
+        const realName = res.data.name;
 
-            if (!db[target.id]) db[target.id] = { money: 5000, hop: [], catchCount: 0 };
+        if (!db[target.id]) db[target.id] = { money: 5000, hop: [], catchCount: 0 };
 
-            db[target.id].hop.push({
-                name: realName,
-                level: level,
-                type: res.data.types[0].type.name
-            });
+        db[target.id].hop.push({
+            name: realName,
+            level: level,
+            shiny: isShiny,
+            type: res.data.types[0].type.name
+        });
+        saveDB();
 
-            const addEmbed = new EmbedBuilder()
-                .setTitle('🎁 ADMIN TẶNG POKÉMON')
-                .setColor('#2ecc71')
-                .setDescription(`Đã tặng **${realName.toUpperCase()}** cho **${target.username}**`)
-                .setThumbnail(res.data.sprites.other['official-artwork'].front_default)
-                .addFields({ name: '🆙 Cấp độ', value: `\`Lvl ${level}\`` });
+        // Lấy ảnh đúng loại (Shiny hoặc Default)
+        const pokeImg = isShiny 
+            ? res.data.sprites.other['official-artwork'].front_shiny 
+            : res.data.sprites.other['official-artwork'].front_default;
 
-            message.channel.send({ embeds: [addEmbed] });
-        } catch (e) {
-            message.reply("❌ ID hoặc Tên Pokémon không tồn tại!");
-        }
+        const addEmbed = new EmbedBuilder()
+            .setTitle('🎁 ĐẶC ÂN TỪ ADMIN')
+            .setColor(isShiny ? '#f1c40f' : '#2ecc71')
+            .setDescription(`Admin đã tặng **${isShiny ? '✨ SHINY ' : ''}${realName.toUpperCase()}** cho <@${target.id}>!`)
+            .setThumbnail(pokeImg)
+            .addFields(
+                { name: '📊 Cấp độ', value: `\`Lvl ${level}\``, inline: true },
+                { name: '🧬 Loại', value: `\`${isShiny ? 'Hàng hiếm (Shiny)' : 'Hàng thường'}\``, inline: true }
+            );
+
+        message.channel.send({ embeds: [addEmbed] });
+    } catch (e) {
+        message.reply("❌ Không tìm thấy Pokémon này! Kiểm tra lại tên xem ông.");
     }
+}
     // ================= [ LỆNH !ADDXUVANG - CHỈ ADMIN ] =================
     if (command === 'addxuvang' || command === 'addxuvang312312312312') {
         // Chỉ những người có quyền Quản lý tin nhắn mới được dùng
@@ -606,47 +745,55 @@ saveDB();
 saveDB();
         message.reply(`🕊️ Ông đã thả **${name.toUpperCase()}** về tự nhiên và nhận được \`100 xu\`!`);
     }
-   // ================= [ LỆNH !TRAIN - ĐÃ FIX LỖI KHÔNG TRỪ TIỀN ] =================
+  // ================= [ LỆNH !TRAIN - NÂNG CẤP MAX LVL 1000 & SHINY ] =================
     if (command === 'train') {
         const name = args[0]?.toLowerCase();
         if (!name) return message.reply("Chọn con nào để huấn luyện? (Ví dụ: `!train pikachu`) ");
 
-        // Kiểm tra xem người dùng có trong DB chưa
-        if (!db[userId]) return message.reply("Ông chưa có dữ liệu, đi bắt Pokemon trước đi!");
+        if (!db[userId] || !db[userId].hop) return message.reply("Ông chưa có dữ liệu, đi bắt Pokemon trước đi!");
 
         const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === name);
         if (idx === -1) return message.reply("Con này không có trong Hộp của ông!");
 
         const pokemon = db[userId].hop[idx];
         const currentLvl = pokemon.level;
+        const isShiny = pokemon.shiny || false; // Kiểm tra xem có phải Shiny không
 
-        if (currentLvl >= 100) return message.reply(`🔥 **${name.toUpperCase()}** đã đạt cấp tối đa (Lvl 100)!`);
+        // Nâng giới hạn lên Level 1000
+        if (currentLvl >= 1000) return message.reply(`🔥 **${name.toUpperCase()}** đã đạt cấp tối thượng (Lvl 1000)!`);
 
-        // Tính toán giá nâng cấp
+        // Tính toán giá nâng cấp (Công thức điều chỉnh để không bị quá lạm phát ở lvl 1000)
         const baseCost = 500;
-        const upgradeCost = baseCost + (currentLvl * 100);
+        const upgradeCost = baseCost + (currentLvl * 150); 
 
         if (db[userId].money < upgradeCost) {
-            return message.reply(`💸 Không đủ tiền! Cần \`${upgradeCost.toLocaleString()} xu\`.`);
+            return message.reply(`💸 Không đủ tiền! Cần \`${upgradeCost.toLocaleString()} xu\` để huấn luyện cấp độ này.`);
         }
 
-        // --- BƯỚC QUAN TRỌNG: CẬP NHẬT DỮ LIỆU ---
-        db[userId].money -= upgradeCost; // Trừ tiền
-        const lvGain = Math.floor(Math.random() * 3) + 1; // Tăng 1-3 level
-        db[userId].hop[idx].level += lvGain;
+        // --- CẬP NHẬT DỮ LIỆU ---
+        db[userId].money -= upgradeCost; 
+        
+        // Tăng level (Random từ 1-5 level cho nhanh đạt 1000)
+        let lvGain = Math.floor(Math.random() * 5) + 1; 
+        if (db[userId].hop[idx].level + lvGain > 1000) {
+            db[userId].hop[idx].level = 1000;
+        } else {
+            db[userId].hop[idx].level += lvGain;
+        }
 
-        // Ghi dữ liệu vào file db.json ngay lập tức để không bị mất
-        fs.writeFileSync('./db.json', JSON.stringify(db, null, 2)); 
+        // Lưu vào file bằng hàm saveDB đã có sẵn trong code của ông
+        saveDB(); 
 
         const trainEmbed = new EmbedBuilder()
-            .setTitle('⚔️ PHÒNG TẬP GYM POKÉMON')
-            .setColor('#e67e22')
-            .setDescription(`Huấn luyện thành công **${name.toUpperCase()}**!`)
+            .setTitle(isShiny ? '✨ PHÒNG TẬP GYM SHINY ✨' : '⚔️ PHÒNG TẬP GYM POKÉMON')
+            .setColor(isShiny ? '#f1c40f' : '#e67e22') // Màu vàng nếu là Shiny
+            .setDescription(`Huấn luyện thành công **${isShiny ? '✨ ' : ''}${name.toUpperCase()}**!`)
             .addFields(
-                { name: '📈 Level mới', value: `\`Lvl ${currentLvl}\` ➡️ \`Lvl ${db[userId].hop[idx].level}\``, inline: true },
-                { name: '💰 Phí huấn luyện', value: `\`-${upgradeCost.toLocaleString()} xu\``, inline: true }
+                { name: '📈 Cấp độ', value: `\`Lvl ${currentLvl}\` ➡️ \`Lvl ${db[userId].hop[idx].level}\``, inline: true },
+                { name: '💰 Chi phí', value: `\`-${upgradeCost.toLocaleString()} xu\``, inline: true },
+                { name: '⭐ Trạng thái', value: `\`${isShiny ? 'Shiny (X5 EXP)' : 'Thường'}\``, inline: true }
             )
-            .setFooter({ text: `Số dư hiện tại: ${db[userId].money.toLocaleString()} xu` })
+            .setFooter({ text: `Ví tiền: ${db[userId].money.toLocaleString()} xu | Max Lvl: 1000` })
             .setTimestamp();
 
         message.channel.send({ embeds: [trainEmbed] });

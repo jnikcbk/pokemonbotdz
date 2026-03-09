@@ -69,67 +69,82 @@ function saveMarket() {
 }
     // ================= [ LỆNH !HOP CHI TIẾT - CÓ MENU CHỌN ] =================
     if (command === 'hop' || command === 'bag') {
-        if (!db[userId] || !db[userId].hop || db[userId].hop.length === 0) {
-            return message.reply("🎒 Túi đồ trống rỗng, đi bắt Pokémon đi đã ông ơi!");
+        const userData = db[userId];
+        if (!userData || !userData.hop || userData.hop.length === 0) {
+            return message.reply("🎒 **Túi đồ trống rỗng!** Đi bắt thú đi ông ơi!");
         }
 
-        const pokemonList = db[userId].hop;
+        const pokemonList = userData.hop;
 
-        // 1. Tạo Embed danh sách tổng quát
+        // 1. Giao diện danh sách tổng quát
         const mainEmbed = new EmbedBuilder()
-            .setTitle(`🎒 TÚI ĐỒ CỦA ${message.author.username.toUpperCase()}`)
+            .setAuthor({ name: `HÀNH TRANG CỦA ${message.author.username.toUpperCase()}`, iconURL: message.author.displayAvatarURL() })
+            .setTitle('🎒 KHO POKÉMON CỦA BẠN')
             .setColor('#3498db')
-            .setDescription(`💰 **Số dư:** \`${db[userId].money.toLocaleString()} xu\`\n\n**Danh sách Pokémon:**\n${pokemonList.map((p, i) => `\`${i + 1}.\` ${p.shiny ? '✨' : '🐾'} **${p.name.toUpperCase()}** (Lvl ${p.level})`).slice(0, 25).join('\n')}`)
-            .setFooter({ text: "Hãy chọn Pokémon bên dưới để xem chi tiết 👇" });
+            .setDescription(`💰 **Số dư:** \`${(userData.money || 0).toLocaleString()} xu\`\n🔥 **Tổng số:** \`${pokemonList.length}\` con\n\n**Danh sách 25 con đầu tiên:**`)
+            .addFields({
+                name: '📋 Danh sách:',
+                value: pokemonList.slice(0, 25).map((p, i) => {
+                    const icon = p.shiny ? '✨' : '🐾';
+                    // Lấy ngày bắt, nếu chưa có thì lấy ngày hôm nay
+                    const catchDate = p.date || new Date().toLocaleDateString('vi-VN');
+                    return `\`${(i + 1).toString().padStart(2, '0')}.\` ${icon} **${p.name.toUpperCase()}** (Lvl ${p.level}) - 📅 \`${catchDate}\``;
+                }).join('\n')
+            })
+            .setFooter({ text: "Chọn Pokemon bên dưới để xem Dame/HP và Ảnh chi tiết 👇" });
 
-        // 2. Tạo Menu chọn Pokémon (Tối đa 25 con đầu tiên để tránh lỗi Discord)
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('select_pokemon')
-            .setPlaceholder('Bấm vào đây để xem chi tiết một con...')
+            .setPlaceholder('🔍 Chọn Pokemon để xem chỉ số chiến đấu...')
             .addOptions(pokemonList.slice(0, 25).map((p, i) => ({
                 label: `${i + 1}. ${p.name.toUpperCase()}`,
-                description: `Level: ${p.level} | ${p.shiny ? 'Hàng Shiny ✨' : 'Hàng thường'}`,
+                description: `Lvl: ${p.level} | Ngày: ${p.date || 'Mới'}`,
                 value: i.toString(),
                 emoji: p.shiny ? '✨' : '🐾'
             })));
 
         const row = new ActionRowBuilder().addComponents(selectMenu);
+        const curMessage = await message.reply({ embeds: [mainEmbed], components: [row] });
 
-        const curMessage = await message.reply({
-            embeds: [mainEmbed],
-            components: [row]
-        });
-
-        // 3. Bộ lắng nghe khi người dùng chọn trong Menu
         const collector = curMessage.createMessageComponentCollector({
             filter: (i) => i.user.id === message.author.id,
-            time: 60000
+            time: 60000 
         });
 
         collector.on('collect', async (i) => {
             if (i.customId === 'select_pokemon') {
-                const selectedIdx = parseInt(i.values[0]);
-                const p = pokemonList[selectedIdx];
+                const p = pokemonList[parseInt(i.values[0])];
+                
+                // --- HỆ THỐNG TÍNH CHỈ SỐ GIẢ LẬP THEO LEVEL ---
+                const hp = 100 + (p.level * 10) + (p.shiny ? 50 : 0);
+                const dame = 10 + (p.level * 5) + (p.shiny ? 20 : 0);
+                const def = 5 + (p.level * 3);
+                const speed = 10 + (p.level * 2);
+                const catchDate = p.date || new Date().toLocaleDateString('vi-VN');
 
                 const detailEmbed = new EmbedBuilder()
-                    .setTitle(`${p.shiny ? '✨' : '🐾'} CHI TIẾT: ${p.name.toUpperCase()}`)
+                    .setTitle(`${p.shiny ? '✨ SHINY' : '🐾'} ${p.name.toUpperCase()}`)
                     .setColor(p.shiny ? '#f1c40f' : '#2ecc71')
                     .addFields(
                         { name: '📊 Cấp độ', value: `\`Lvl ${p.level}\``, inline: true },
-                        { name: '📅 Ngày bắt', value: `\`${p.date || 'Không rõ'}\``, inline: true },
-                        { name: '💎 Phẩm chất', value: `\`${p.shiny ? 'SHINY ✨' : 'Thường'}\``, inline: true }
+                        { name: '📅 Ngày bắt', value: `\`${catchDate}\``, inline: true },
+                        { name: '💎 Loại', value: `\`${p.shiny ? 'Cực hiếm' : 'Thường'}\``, inline: true },
+                        // Phần Dame, HP ở đây:
+                        { name: '❤️ Máu (HP)', value: `\`${hp}\``, inline: true },
+                        { name: '⚔️ Tấn công (ATK)', value: `\`${dame}\``, inline: true },
+                        { name: '🛡️ Phòng thủ (DEF)', value: `\`${def}\``, inline: true },
+                        { name: '⚡ Tốc độ (SPD)', value: `\`${speed}\``, inline: true }
                     )
-                    .setFooter({ text: "Ông có thể chọn con khác trong menu bên dưới." });
+                    .setFooter({ text: "Sức mạnh tỉ lệ thuận với Cấp độ của Pokemon!" });
 
-                // Gọi API lấy ảnh con được chọn
                 try {
                     const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${p.name.toLowerCase()}`);
                     const spriteUrl = p.shiny 
                         ? res.data.sprites.other['official-artwork'].front_shiny 
                         : res.data.sprites.other['official-artwork'].front_default;
-                    detailEmbed.setImage(spriteUrl);
+                    if (spriteUrl) detailEmbed.setImage(spriteUrl);
                 } catch (e) {
-                    detailEmbed.setDescription("_Lỗi: Không tải được ảnh từ PokeAPI_");
+                    detailEmbed.setDescription("⚠️ _Lỗi: Không tải được ảnh_");
                 }
 
                 await i.update({ embeds: [detailEmbed], components: [row] });
@@ -586,7 +601,7 @@ function saveMarket() {
             message.channel.send({ embeds: [resultEmbed] });
         });
     }
- if (command === 'bat' || command === 'batpokemon') {
+if (command === 'bat' || command === 'batpokemon') {
     message.delete().catch(() => {}); 
 
     if (!currentGlobalPokemon) return;
@@ -597,97 +612,113 @@ function saveMarket() {
         if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
         const isShiny = currentGlobalPokemon.isShiny || false;
-        
-        // Lưu vào túi đồ với đầy đủ thuộc tính
+        const level = currentGlobalPokemon.level;
+
+        // --- HỆ THỐNG TÍNH CHỈ SỐ ĐỂ HIỂN THỊ NGAY ---
+        const hp = 100 + (level * 10) + (isShiny ? 50 : 0);
+        const dame = 10 + (level * 5) + (isShiny ? 20 : 0);
+        const catchDate = new Date().toLocaleDateString('vi-VN');
+
+        // Lưu vào túi đồ (đổi key thành 'date' cho khớp với lệnh !hop ở trên)
         db[userId].hop.push({
             name: currentGlobalPokemon.name,
-            level: currentGlobalPokemon.level,
+            level: level,
             shiny: isShiny,
-            catchDate: new Date().toLocaleDateString('vi-VN')
+            date: catchDate,
+            hp: hp,     // Lưu luôn chỉ số vào túi cho chắc
+            dame: dame
         });
 
-        const reward = isShiny ? 1500 : 200; // Shiny thưởng đậm hơn
+        const reward = isShiny ? 1500 : 200; 
         db[userId].money += reward;
         db[userId].catchCount += 1;
         saveDB();
 
+        // Tạo Embed thông báo siêu chi tiết
         const successEmbed = new EmbedBuilder()
-            .setTitle(isShiny ? '🌟 SIÊU PHẨM SHINY! 🌟' : '✅ THU PHỤC THÀNH CÔNG!')
+            .setAuthor({ name: message.author.username, iconURL: message.author.displayAvatarURL() })
+            .setTitle(isShiny ? '🌟 SIÊU PHẨM SHINY XUẤT HIỆN! 🌟' : '✅ THU PHỤC THÀNH CÔNG!')
             .setColor(isShiny ? '#f1c40f' : '#2ecc71')
-            .setDescription(`Chúc mừng **${message.author.username}** đã bắt được **${currentGlobalPokemon.name.toUpperCase()}**!`)
+            .setDescription(`Ông vừa ném Pokéball và bắt gọn **${currentGlobalPokemon.name.toUpperCase()}**!`)
             .addFields(
-                { name: '📊 Chỉ số', value: `\`Lvl ${currentGlobalPokemon.level}\` | \`${isShiny ? 'Hệ: Shiny ✨' : 'Hệ: Thường'}\``, inline: true },
-                { name: '💰 Thưởng', value: `\`+${reward.toLocaleString()} xu\``, inline: true }
+                { name: '📋 Thông tin sơ bộ', value: `🧬 **Phẩm chất:** ${isShiny ? '`Shiny ✨`' : '`Thường 🐾`'}\n📊 **Cấp độ:** \`Lvl ${level}\`\n📅 **Ngày bắt:** \`${catchDate}\``, inline: false },
+                { name: '⚔️ Chỉ số cơ bản', value: `❤️ **HP:** \`${hp}\`\n⚔️ **ATK:** \`${dame}\``, inline: true },
+                { name: '💰 Phần thưởng', value: `🪙 **Xu:** \`+${reward.toLocaleString()}\`\n📈 **Tổng bắt:** \`${db[userId].catchCount}\` con`, inline: true }
             )
-            .setThumbnail(isShiny ? 'https://i.imgur.com/vHdfZfC.png' : null) // Thêm icon nhỏ nếu muốn
-            .setFooter({ text: 'Check túi đồ bằng lệnh !hop' });
-
-        const sMsg = await message.channel.send({ embeds: [successEmbed] });
-        
-        currentGlobalPokemon = null; 
-        setTimeout(() => sMsg.delete().catch(() => {}), 10000); // 10s sau tự xóa cho sạch
-    }
-}
-   // ================= [ LỆNH !BUYPKVIP - TỰ TẠO ROLE ] =================
-    if (command === 'buypkvip' || command === 'vip') {
-        const vipPrice = 100000; 
-        const vipRoleName = "⭐ BẬC THẦY VIP"; // Tên Role tự động tạo
-
-        if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
-
-        // Hàm hỗ trợ tìm hoặc tạo Role
-        const getOrCreateRole = async () => {
-            let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
-            if (!role) {
-                // Nếu không thấy thì Bot tự tạo Role mới
-                role = await message.guild.roles.create({
-                    name: vipRoleName,
-                    color: '#f1c40f', // Màu vàng Gold
-                    permissions: [],
-                    reason: 'Hệ thống tự động tạo Role VIP cho người chơi',
-                });
-            }
-            return role;
-        };
-
-        // --- TRƯỜNG HỢP 1: ADMIN TẶNG ROLE ---
-        if (message.member.permissions.has("ManageMessages") && message.mentions.users.first()) {
-            const targetMember = message.mentions.members.first();
-            const role = await getOrCreateRole();
-
-            await targetMember.roles.add(role);
-            return message.channel.send(`🛡️ **Admin** đã đặc cách tạo và cấp Role **${vipRoleName}** cho <@${targetMember.id}>!`);
-        }
-
-        // --- TRƯỜNG HỢP 2: MEMBER TỰ MUA ---
-        if (message.member.roles.cache.some(r => r.name === vipRoleName)) {
-            return message.reply("👑 Ông đã sở hữu đặc quyền **VIP** rồi!");
-        }
-
-        if (db[userId].money < vipPrice) {
-            return message.reply(`💸 Thiếu tiền! Giá VIP là \`${vipPrice.toLocaleString()} xu\`.`);
-        }
-
-        // Thực hiện trừ tiền và cấp Role
-        const role = await getOrCreateRole();
-        db[userId].money -= vipPrice;
-        await message.member.roles.add(role);
-
-        // Lưu dữ liệu
-        fs.writeFileSync('./db.json', JSON.stringify(db, null, 2));
-
-        const vipEmbed = new EmbedBuilder()
-            .setTitle('🌟 KÍCH HOẠT ĐẶC QUYỀN VIP 🌟')
-            .setColor('#f1c40f')
-            .setDescription(`Chúc mừng **${message.author.username}** đã trở thành **VIP**!`)
-            .addFields(
-                { name: '💰 Chi phí', value: `\`-${vipPrice.toLocaleString()} xu\``, inline: true },
-                { name: '✨ Trạng thái', value: `\`Đã cấp Role tự động\``, inline: true }
-            )
-            .setFooter({ text: "Hệ thống đã tự động thiết lập quyền hạn VIP cho ông." })
+            .setImage(isShiny ? 'https://i.imgur.com/vHdfZfC.png' : null) // Có thể thay bằng link ảnh hiệu ứng nổ pháo hoa
+            .setFooter({ text: 'Dùng lệnh !hop hoặc !bag để xem chi tiết sức mạnh!' })
             .setTimestamp();
 
-        message.channel.send({ embeds: [vipEmbed] });
+        const sMsg = await message.channel.send({ content: `<@${message.author.id}>`, embeds: [successEmbed] });
+        
+        currentGlobalPokemon = null; 
+        // 15 giây sau tự xóa tin nhắn cho kênh chat nó sạch sẽ
+        setTimeout(() => sMsg.delete().catch(() => {}), 15000); 
+    }
+}
+   // ================= [ LỆNH VIP CAO CẤP ] =================
+    if (command === 'buypkvip' || command === 'vip') {
+        const vipPrice = 100000; 
+        const vipRoleName = "⭐ BẬC THẦY VIP";
+
+        if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0, isVip: false };
+
+        // 1. Kiểm tra nếu đã là VIP (Tránh mua trùng)
+        if (message.member.roles.cache.some(r => r.name === vipRoleName)) {
+            return message.reply("👑 **Ông đã là VIP rồi!** Đừng vung tiền qua cửa sổ thế chứ.");
+        }
+
+        // 2. Kiểm tra ví tiền
+        if (db[userId].money < vipPrice) {
+            const thieu = vipPrice - db[userId].money;
+            return message.reply(`💸 **Nghèo quá sếp ơi!** Còn thiếu \`${thieu.toLocaleString()} xu\` nữa mới đủ mua con Role này.`);
+        }
+
+        // 3. Xử lý tạo/cấp Role và tặng quà VIP
+        try {
+            let role = message.guild.roles.cache.find(r => r.name === vipRoleName);
+            if (!role) {
+                role = await message.guild.roles.create({
+                    name: vipRoleName,
+                    color: '#f1c40f',
+                    hoist: true, // Cho Role này hiện tách biệt trên danh sách thành viên
+                    reason: 'Hệ thống tự động tạo Role VIP'
+                });
+            }
+
+            // TRỪ TIỀN & CẬP NHẬT TRẠNG THÁI VIP TRONG DB
+            db[userId].money -= vipPrice;
+            db[userId].isVip = true; 
+            
+            // TẶNG QUÀ KÈM THEO: Tặng thêm 1 con Pokemon ngẫu nhiên Level cao khi mua VIP
+            const quaTang = { name: "Mewtwo", level: 50, shiny: false, date: new Date().toLocaleDateString('vi-VN') };
+            db[userId].hop.push(quaTang);
+            
+            await message.member.roles.add(role);
+            saveDB();
+
+            // EMBED CỰC ĐẸP
+            const vipEmbed = new EmbedBuilder()
+                .setAuthor({ name: 'HỆ THỐNG ĐẶC QUYỀN', iconURL: 'https://i.imgur.com/vHdfZfC.png' })
+                .setTitle('🌟 KÍCH HOẠT QUYỀN NĂNG VIP 🌟')
+                .setColor('#f1c40f')
+                .setThumbnail(message.author.displayAvatarURL())
+                .setDescription(`Chào mừng tân **VIP** <@${userId}>! Ông đã chính thức gia nhập hàng ngũ đại gia của Server.`)
+                .addFields(
+                    { name: '💳 Giao dịch', value: `\`-${vipPrice.toLocaleString()} xu\``, inline: true },
+                    { name: '🎁 Quà tặng VIP', value: `\`1x ${quaTang.name}\` (Lvl ${quaTang.level})`, inline: true },
+                    { name: '🔥 Đặc quyền', value: `• Tên màu vàng nổi bật\n• Được "ping" khi có Pokemon hiếm\n• Tăng 5% tỉ lệ gặp Shiny`, inline: false }
+                )
+                .setImage('https://i.imgur.com/89kRstk.gif') // Thêm cái gif pháo hoa cho sang
+                .setFooter({ text: 'VIP là vĩnh viễn, không cần nạp lại!' })
+                .setTimestamp();
+
+            message.channel.send({ content: `🎊 Chúc mừng tân VIP: <@${userId}>`, embeds: [vipEmbed] });
+
+        } catch (error) {
+            console.error(error);
+            message.reply("❌ **Lỗi:** Bot không có quyền quản lý Role. Hãy kéo Role của Bot lên trên cùng trong cài đặt Server!");
+        }
     }
    // ================= [ LỆNH !TRADE - NÂNG CẤP ] =================
     if (command === 'trade') {

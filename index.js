@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');;
 const axios = require('axios');
 const fs = require('fs'); // <--- PHẢI CÓ CÁI NÀY ĐỂ LƯU FILE
 
@@ -952,50 +952,74 @@ saveDB();
         saveDB();
         message.reply("💰 Ông đã nhận được quà điểm danh: \`1,000 xu\`!");
     }
+    // ================= [ LỆNH !EV - CÓ NÚT BẤM ĐÃ FIX LỖI ] =================
     if (command === 'ev') {
-        const name = args[0]?.toLowerCase();
+        const nameInput = args[0]?.toLowerCase();
         const evolutionMap = {
             "pichu": "pikachu", "pikachu": "raichu",
             "bulbasaur": "ivysaur", "ivysaur": "venusaur",
             "charmander": "charmeleon", "charmeleon": "charizard",
             "squirtle": "wartortle", "wartortle": "blastoise",
-            "caterpie": "metapod", "metapod": "butterfree",
-            "weedle": "kakuna", "kakuna": "beedrill",
-            "pidgey": "pidgeotto", "pidgeotto": "pidgeot",
-            "rattata": "raticate", "spearow": "fearow",
-            "ekans": "arbok", "sandshrew": "sandslash"
+            "magikarp": "gyarados", "gastly": "haunter", "haunter": "gengar"
         };
 
-        // 1. Kiểm tra túi đồ (Phải có db[userId] trước)
-        if (!db[userId] || !db[userId].hop) return message.reply("Ông chưa có Pokémon nào!");
+        if (!db[userId] || !db[userId].hop) return message.reply("❌ Ông chưa có Pokemon nào!");
 
-        const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === name);
-        if (idx === -1) return message.reply(`❌ Con **${name?.toUpperCase() || "này"}** không có trong Hộp!`);
+        const idx = db[userId].hop.findIndex(p => p.name.toLowerCase() === nameInput);
+        if (idx === -1) return message.reply(`❌ Không tìm thấy **${nameInput?.toUpperCase()}** trong hộp!`);
 
-        const nextForm = evolutionMap[name];
-        if (!nextForm) return message.reply("⚠️ Con này không thể tiến hóa hoặc chưa cập nhật chuỗi tiến hóa!");
+        const pokemon = db[userId].hop[idx];
+        const nextForm = evolutionMap[pokemon.name.toLowerCase()];
 
-        // 2. Kiểm tra Level
-        if (db[userId].hop[idx].level < 30) {
-            return message.reply(`🚫 Cần đạt \`Lvl 30\` mới tiến hóa được! (Hiện tại: Lvl ${db[userId].hop[idx].level})`);
+        if (!nextForm) return message.reply("⚠️ Con này không thể tiến hóa thêm!");
+        if (pokemon.level < 30) return message.reply(`🚫 Cần Level 30! (Hiện tại: ${pokemon.level})`);
+
+        // Tạo nút bấm
+        const row = new ActionRowBuilder()
+            .addComponents(
+                new ButtonBuilder()
+                    .setCustomId('confirm_ev')
+                    .setLabel('TIẾN HÓA NGAY')
+                    .setStyle(ButtonStyle.Success),
+                new ButtonBuilder()
+                    .setCustomId('cancel_ev')
+                    .setLabel('HỦY BỎ')
+                    .setStyle(ButtonStyle.Danger),
+            );
+
+        const askEmbed = new EmbedBuilder()
+            .setTitle('🧬 XÁC NHẬN TIẾN HÓA')
+            .setColor('#f1c40f')
+            .setDescription(`Ông có chắc muốn cho **${pokemon.name.toUpperCase()}** tiến hóa thành **${nextForm.toUpperCase()}** không?`);
+
+        const response = await message.reply({ embeds: [askEmbed], components: [row] });
+
+        // Bộ lọc xử lý: Chỉ người gõ lệnh mới được bấm
+        const collectorFilter = i => i.user.id === message.author.id;
+
+        try {
+            // Đợi bấm nút trong 30 giây
+            const confirmation = await response.awaitMessageComponent({ filter: collectorFilter, time: 30000 });
+
+            if (confirmation.customId === 'confirm_ev') {
+                const oldName = pokemon.name.toUpperCase();
+                pokemon.name = nextForm; // Đổi tên trong dữ liệu
+                saveDB(); // Lưu vào file db.json
+
+                const successEmbed = new EmbedBuilder()
+                    .setTitle('✨ TIẾN HÓA THÀNH CÔNG!')
+                    .setColor('#2ecc71')
+                    .setDescription(`**${oldName}** đã biến thành **${nextForm.toUpperCase()}**!`);
+
+                // Cập nhật tin nhắn để xóa nút bấm đi
+                await confirmation.update({ embeds: [successEmbed], components: [] });
+            } else {
+                await confirmation.update({ content: '❌ Đã hủy bỏ quá trình.', embeds: [], components: [] });
+            }
+        } catch (e) {
+            // Hết 30s không bấm thì tự xóa nút
+            await response.edit({ content: '⌛ Hết thời gian xác nhận.', embeds: [], components: [] });
         }
-
-        // 3. THỰC HIỆN ĐỔI TÊN
-        const oldName = name.toUpperCase();
-        db[userId].hop[idx].name = nextForm;
-
-        // 4. KHÔNG ĐƯỢC QUÊN DÒNG NÀY - LƯU VÀO FILE NGAY!
-        saveDB(); 
-
-        // 5. HIỆN THÔNG BÁO "IB"
-        const evoEmbed = new EmbedBuilder()
-            .setTitle('🧬 TIẾN HÓA THÀNH CÔNG!')
-            .setColor('#9b59b6')
-            .setDescription(`**${oldName}** của ông đã chuyển hóa thành **${nextForm.toUpperCase()}**!`)
-            .setFooter({ text: "Dữ liệu đã được đồng bộ vào hệ thống." })
-            .setTimestamp();
-
-        return message.reply({ embeds: [evoEmbed] });
     }
 });
 

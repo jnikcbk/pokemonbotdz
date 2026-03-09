@@ -120,35 +120,47 @@ function saveMarket() {
 
         return message.reply({ embeds: [allShinyEmbed] });
     }
-  // ================= [ LỆNH !PHELP - CẬP NHẬT FULL OPTION + CHỢ ĐEN ] =================
-    if (command === 'phelp') {
+  // ================= [ LỆNH !PHELP - KHỚP 100% CODE HIỆN TẠI ] =================
+    if (command === 'phelp' || command === 'help') {
         const helpEmbed = new EmbedBuilder()
-            .setTitle('🎮 POKÉMON BOT - CẨM NANG TOÀN TẬP')
-            .setColor('#e74c3c')
+            .setTitle('🎮 POKÉMON WORLD - DANH SÁCH LỆNH')
+            .setColor('#3498db')
             .setThumbnail('https://i.imgur.com/vHdfZfC.png')
-            .setDescription('Chào mừng ông đến với thế giới Pokémon! Dưới đây là danh sách lệnh đã được nâng cấp hệ thống **Shiny** và **Chợ Đen**:')
+            .setDescription('Chào mừng HLV! Dưới đây là các lệnh đang hoạt động trên hệ thống của ông:')
             .addFields(
                 { 
-                    name: '🐾 SĂN BẮT & PHÁT TRIỂN', 
-                    value: '`!pkauto`: Bật/Tắt tự động xuất hiện Pokémon.\n`!bat [tên]`: Thu phục Pokémon (Có tỉ lệ **Shiny ✨**).\n`!hop [trang]`: Xem túi đồ, số dư và trạng thái Shiny.\n`!train [tên]`: Huấn luyện (Max Lvl 1000).' 
+                    name: '🐾 SĂN BẮT & QUẢN LÝ', 
+                    value: [
+                        '`!pkauto`: Bật/Tắt máy dò Pokémon tự động (Admin).',
+                        '`!bat [tên]`: Thu phục Pokémon đang xuất hiện.',
+                        '`!hop`: Xem túi đồ, số dư và danh sách Pokémon của ông.',
+                        '`!pkshiny`: Xem bảng vàng Pokémon Shiny toàn server.'
+                    ].join('\n')
                 },
                 { 
-                    name: '🛒 THƯƠNG MẠI (CHỢ ĐEN)', 
-                    value: '`!choden`: Xem danh sách Pokémon hiếm đang bán.\n`!mua [mã_số]`: Mua Pokémon từ Chợ Đen bằng xu.' 
+                    name: '🧬 PHÁT TRIỂN POKÉMON', 
+                    value: [
+                        '`!train [tên]`: Huấn luyện tăng cấp cho Pokémon.',
+                        '`!ev [tên]`: Tiến hóa Pokémon khi đạt Level 30+.'
+                    ].join('\n')
                 },
                 { 
-                    name: '⚔️ ĐẤU TRƯỜNG & TIỆN ÍCH', 
-                    value: '`!dau @user [tên]`: Thách đấu PvP.\n`!ev [tên]`: Tiến hóa Pokémon.\n`!daily`: Nhận xu miễn phí mỗi ngày.' 
+                    name: '🕶️ CHỢ ĐEN (BLACK MARKET)', 
+                    value: [
+                        '`!choden`: Xem danh sách Pokémon Admin đang rao bán.',
+                        '`!mua [mã_số]`: Mua Pokémon từ Chợ Đen bằng xu.'
+                    ].join('\n')
                 },
                 { 
-                    name: '🛡️ QUYỀN HẠN ADMIN', 
-                    value: '`!adsale [tên] [giá] [lvl] [shiny]`: Treo hàng lên Chợ Đen.\n`!addpk @user [tên] [lvl] [shiny]`: Tặng Pokémon.\n`!adclear`: Dọn sạch vật phẩm trên Chợ Đen.' 
+                    name: '🛡️ LỆNH ADMIN', 
+                    value: [
+                        '`!adsale [tên] [giá] [lvl] [shiny]`: Treo hàng lên chợ.',
+                        '`!addpk @user [tên] [lvl] [shiny]`: Tặng Pokémon cho người chơi.',
+                        '`!addxuvang @user [số_tiền]`: Cấp thêm xu cho người chơi.',
+                        '`!adclear`: Dọn sạch hàng trên Chợ Đen.'
+                    ].join('\n')
                 }
             )
-            .addFields({ 
-                name: '💡 Mẹo Nhỏ', 
-                value: 'Pokémon **Shiny ✨** có giá trị rất cao trên Chợ Đen và hiển thị lấp lánh trong túi đồ và gõ !pkshiny để biết thêm trong server có bao nhiêu pokemon shiny đã được bắt!' 
-            })
             .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
 

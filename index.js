@@ -492,49 +492,7 @@ function saveMarket() {
         saveMarket();
         message.reply("🧹 Đã dọn sạch Chợ Đen!");
     }
-    if (command === 'hop' || command === 'check') {
-    const target = message.mentions.users.first() || message.author;
-    if (!db[target.id]) {
-        db[target.id] = { money: 5000, hop: [], catchCount: 0 };
-        saveDB();
-    }
-
-    const userData = db[target.id];
-    if (!userData.hop || userData.hop.length === 0) {
-        return message.reply(`❌ **${target.username}** chưa có Pokémon nào. Mau đi bắt đi ông!`);
-    }
-
-    const page = parseInt(args[0]) || 1;
-    const itemsPerPage = 5; // Để 5 con 1 trang cho đẹp và thoáng
-    const totalPages = Math.ceil(userData.hop.length / itemsPerPage);
-    const start = (page - 1) * itemsPerPage;
-    const currentItems = userData.hop.slice(start, start + itemsPerPage);
-
-    if (currentItems.length === 0) return message.reply(`Trang này trống rỗng!`);
-
-    const pokemonList = currentItems.map((p, i) => {
-        // Thanh Level đẹp mắt
-        const progress = Math.floor((p.level / 100) * 10);
-        const bar = "▶️" + "▬".repeat(progress) + "🔘" + "▬".repeat(10 - progress);
-        const shinyTag = p.shiny ? "✨ **[SHINY]** " : "🐾 ";
-        
-        return `${shinyTag}**${p.name.toUpperCase()}** (ID: \`#${start + i + 1}\`)\n\`LV. ${p.level}\` ${bar}\n`;
-    }).join("\n");
-
-    const hopEmbed = new EmbedBuilder()
-        .setAuthor({ name: `HỒ SƠ HUẤN LUYỆN VIÊN`, iconURL: target.displayAvatarURL() })
-        .setTitle(`🎒 TÚI ĐỒ CỦA ${target.username.toUpperCase()}`)
-        .setColor(target.id === message.author.id ? '#3498db' : '#e74c3c')
-        .addFields(
-            { name: '💳 Tài chính', value: `\`${userData.money.toLocaleString()} xu\``, inline: true },
-            { name: '🏆 Kỷ lục', value: `\`${userData.catchCount} con\``, inline: true }
-        )
-        .setDescription(`--- **DANH SÁCH POKÉMON** ---\n\n${pokemonList}`)
-        .setFooter({ text: `Trang ${page}/${totalPages} | Tổng: ${userData.hop.length} Pokémon` })
-        .setTimestamp();
-
-    return message.reply({ embeds: [hopEmbed] });
-}
+   
     // ================= [ LỆNH !DAU - CHI TIẾT CỰC HẠN ] =================
     if (command === 'dau' || command === 'pvp') {
         const target = message.mentions.users.first();

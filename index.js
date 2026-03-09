@@ -232,61 +232,22 @@ function saveMarket() {
 
         return message.reply({ embeds: [allShinyEmbed] });
     }
-  // ================= [ LỆNH !PHELP - CẬP NHẬT HỆ THỐNG HỘI QUÁN ] =================
-    if (command === 'phelp' {
+  // ================= [ LỆNH !PHELP - TẤT CẢ LỆNH ] =================
+    if (command === 'phelp' || command === 'help') {
         const helpEmbed = new EmbedBuilder()
-            .setTitle('🎮 POKÉMON WORLD - TRUNG TÂM ĐIỀU HÀNH')
-            .setColor('#f1c40f')
-            .setThumbnail('https://i.imgur.com/G9L6RGo.gif')
-            .setDescription('Chào mừng HLV! Dưới đây là danh sách các tính năng đã được nâng cấp, bao gồm hệ thống **90 Hội Quán (9 Gen)**.')
+            .setTitle('🎮 POKÉMON WORLD - DANH SÁCH LỆNH')
+            .setColor('#3498db')
+            .setThumbnail('https://i.imgur.com/vHdfZfC.png')
+            .setDescription('Chào mừng HLV! Dưới đây là các lệnh đang hoạt động:')
             .addFields(
-                { 
-                    name: '🏟️ HÀNH TRÌNH HỘI QUÁN (90 BẬC)', 
-                    value: [
-                        '`!hoiquan`: Xem lộ trình Gen 1 (Kanto).',
-                        '`!hoiquan [1-9]`: Xem danh sách Gym & Champion từng Gen.',
-                        '`!hoiquan [ID] [tên_pk]`: Thách đấu Hội quán (Ví dụ: `!hoiquan 09 pikachu`).',
-                        '*Vượt qua 10 bậc mỗi vùng để trở thành Champion!*'
-                    ].join('\n')
-                },
-                { 
-                    name: '🐾 SĂN BẮT & QUẢN LÝ', 
-                    value: [
-                        '`!bat [tên]`: Thu phục Pokémon đang xuất hiện.',
-                        '`!hop`: Xem túi đồ, số dư, huy chương và Pokémon.',
-                        '`!train [tên]`: Huấn luyện tăng cấp (Dùng để leo Gym).',
-                        '`!ev [tên]`: Tiến hóa Pokémon khi đủ cấp độ.'
-                    ].join('\n'),
-                    inline: false
-                },
-                { 
-                    name: '🕶️ THƯƠNG MẠI', 
-                    value: [
-                        '`!choden`: Ghé thăm Chợ Đen của Admin.',
-                        '`!mua [mã_số]`: Mua Pokémon hiếm bằng xu.'
-                    ].join('\n'),
-                    inline: true
-                },
-                { 
-                    name: '📊 THỐNG KÊ', 
-                    value: [
-                        '`!pkshiny`: Bảng vàng Pokémon Shiny.',
-                        '`!top`: Xem bảng xếp hạng đại gia.'
-                    ].join('\n'),
-                    inline: true
-                },
-                { 
-                    name: '🛠️ QUẢN TRỊ (ADMIN)', 
-                    value: [
-                        '`!pkauto`: Bật/Tắt máy dò Pokémon.',
-                        '`!addpk`, `!addxuvang`, `!adsale`: Quản lý tài nguyên.'
-                    ].join('\n')
-                }
+                { name: '🐾 SĂN BẮT & QUẢN LÝ', value: '`!bat [tên]`: Bắt Pokemon đang hiện.\n`!hop`: Xem túi đồ & Pokemon.\n`!phongsinh [tên]`: Thả Pokemon nhận 100 xu.' },
+                { name: '⚔️ CHIẾN ĐẤU & PHÁT TRIỂN', value: '`!dau @user [tên]`: Thách đấu người khác.\n`!train [tên]`: Tăng Level (Max 1000).\n`!ev [tên]`: Tiến hóa (Lv 30+).', inline: false },
+                { name: '💰 KINH TẾ', value: '`!daily`: Nhận trợ cấp hàng ngày.\n`!choden`: Xem chợ.\n`!mua [mã]`: Mua hàng.\n`!trade @user [tên_mình] [tên_họ]`: Trao đổi.', inline: false },
+                { name: '📊 THỐNG KÊ', value: '`!pkshiny`: Bảng vàng Shiny.\n`!toppk`: BXH đại gia.\n`!pokedex`: Tra cứu danh sách.', inline: true },
+                { name: '🛠️ ADMIN', value: '`!pkauto`: Bật máy dò.\n`!addpk`, `!addxuvang`, `!adclear`.', inline: true }
             )
-            .setImage('https://i.imgur.com/vHdfZfC.png') // Banner trang trí phía dưới
-            .setFooter({ text: `HLV: ${message.author.username} • Chúc ông săn được nhiều Shiny!`, iconURL: message.author.displayAvatarURL() })
+            .setFooter({ text: `HLV: ${message.author.username}` })
             .setTimestamp();
-
         return message.reply({ embeds: [helpEmbed] });
     }
 // ================= [ LỆNH PKAUTO - PHIÊN BẢN GỌN SẠCH ] =================

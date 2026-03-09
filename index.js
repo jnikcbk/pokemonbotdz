@@ -977,11 +977,45 @@ saveDB();
 
         message.channel.send({ embeds: [trainEmbed] });
     }
+    // ================= [ LỆNH !DAILY - NHẬN TIỀN HÀNG NGÀY ] =================
     if (command === 'daily') {
-        // Lưu ý: Do dùng biến db trong RAM nên reset bot là có thể gõ lại được ngay
-        db[userId].money += 1000;
-        saveDB();
-        message.reply("💰 Ông đã nhận được quà điểm danh: \`1,000 xu\`!");
+        // Khởi tạo dữ liệu nếu người dùng mới hoàn toàn
+        if (!db[userId]) {
+            db[userId] = { money: 0, hop: [], lastDaily: 0 };
+        }
+        
+        const cooldown = 24 * 60 * 60 * 1000; // 24 giờ tính bằng miligiây
+        const lastDaily = db[userId].lastDaily || 0;
+        const now = Date.now();
+
+        // Kiểm tra xem đã đủ 24h chưa
+        if (now - lastDaily < cooldown) {
+            const remaining = cooldown - (now - lastDaily);
+            const hours = Math.floor(remaining / (60 * 60 * 1000));
+            const minutes = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+            
+            return message.reply(`⏳ Ông đã nhận quà hôm nay rồi! Hãy quay lại sau **${hours} giờ ${minutes} phút** nữa nhé.`);
+        }
+
+        // Ngẫu nhiên số tiền nhận được từ 1,000 đến 5,000 xu
+        const gift = Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000;
+        
+        // Cập nhật tiền và thời gian nhận
+        db[userId].money = (db[userId].money || 0) + gift;
+        db[userId].lastDaily = now;
+        
+        // Lưu vào file db.json
+        saveDB(); 
+
+        const dailyEmbed = new EmbedBuilder()
+            .setTitle('🎁 QUÀ TẶNG HÀNG NGÀY')
+            .setColor('#f1c40f')
+            .setDescription(`Chúc mừng **${message.author.username}**!\nÔng đã nhận được **${gift.toLocaleString()} xu** trợ cấp.`)
+            .addFields({ name: '💰 Số dư hiện tại', value: `\`${db[userId].money.toLocaleString()} xu\`` })
+            .setFooter({ text: 'mày tính buff à t fix  nhé nhất thg @nguyenhuykz' })
+            .setTimestamp();
+
+        return message.reply({ embeds: [dailyEmbed] });
     }
     // ================= [ LỆNH !EV - CÓ NÚT BẤM ĐÃ FIX LỖI ] =================
     if (command === 'ev') {

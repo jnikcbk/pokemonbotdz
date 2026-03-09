@@ -67,38 +67,39 @@ if (fs.existsSync(MARKET_PATH)) {
 function saveMarket() {
     fs.writeFileSync(MARKET_PATH, JSON.stringify(market, null, 4));
 }
-    // ================= [ LỆNH !HOP CHI TIẾT - CÓ MENU CHỌN ] =================
+    
     if (command === 'hop' || command === 'bag') {
         const userData = db[userId];
         if (!userData || !userData.hop || userData.hop.length === 0) {
-            return message.reply("🎒 **Túi đồ trống rỗng!** Đi bắt thú đi ông ơi!");
+            return message.reply("🎒 **Túi đồ trống rỗng!** Mau đi săn Pokémon đi sếp ơi!");
         }
 
         const pokemonList = userData.hop;
 
-        // 1. Giao diện danh sách tổng quát
+        // 1. EMBED TỔNG QUÁT (Thiết kế lại gọn gàng)
         const mainEmbed = new EmbedBuilder()
             .setAuthor({ name: `HÀNH TRANG CỦA ${message.author.username.toUpperCase()}`, iconURL: message.author.displayAvatarURL() })
             .setTitle('🎒 KHO POKÉMON CỦA BẠN')
             .setColor('#3498db')
+            .setThumbnail('https://i.imgur.com/vHdfZfC.png')
             .setDescription(`💰 **Số dư:** \`${(userData.money || 0).toLocaleString()} xu\`\n🔥 **Tổng số:** \`${pokemonList.length}\` con\n\n**Danh sách 25 con đầu tiên:**`)
             .addFields({
                 name: '📋 Danh sách:',
                 value: pokemonList.slice(0, 25).map((p, i) => {
                     const icon = p.shiny ? '✨' : '🐾';
-                    // Lấy ngày bắt, nếu chưa có thì lấy ngày hôm nay
-                    const catchDate = p.date || new Date().toLocaleDateString('vi-VN');
-                    return `\`${(i + 1).toString().padStart(2, '0')}.\` ${icon} **${p.name.toUpperCase()}** (Lvl ${p.level}) - 📅 \`${catchDate}\``;
+                    const catchDate = p.date || p.catchDate || new Date().toLocaleDateString('vi-VN');
+                    return `\`${(i + 1).toString().padStart(2, '0')}.\` ${icon} **${p.name.toUpperCase()}** \`(Lvl ${p.level})\` 📅 \`${catchDate}\``;
                 }).join('\n')
             })
-            .setFooter({ text: "Chọn Pokemon bên dưới để xem Dame/HP và Ảnh chi tiết 👇" });
+            .setFooter({ text: "Sử dụng Menu bên dưới để xem chỉ số chiến đấu 👇" });
 
+        // 2. MENU CHỌN (Thêm Icon cho đẹp)
         const selectMenu = new StringSelectMenuBuilder()
             .setCustomId('select_pokemon')
-            .setPlaceholder('🔍 Chọn Pokemon để xem chỉ số chiến đấu...')
+            .setPlaceholder('🔍 Nhấn vào đây để xem chi tiết...')
             .addOptions(pokemonList.slice(0, 25).map((p, i) => ({
                 label: `${i + 1}. ${p.name.toUpperCase()}`,
-                description: `Lvl: ${p.level} | Ngày: ${p.date || 'Mới'}`,
+                description: `Cấp độ: ${p.level} | Ngày: ${p.date || p.catchDate || 'Mới'}`,
                 value: i.toString(),
                 emoji: p.shiny ? '✨' : '🐾'
             })));
@@ -106,6 +107,7 @@ function saveMarket() {
         const row = new ActionRowBuilder().addComponents(selectMenu);
         const curMessage = await message.reply({ embeds: [mainEmbed], components: [row] });
 
+        // 3. XỬ LÝ KHI NGƯỜI DÙNG BẤM CHỌN
         const collector = curMessage.createMessageComponentCollector({
             filter: (i) => i.user.id === message.author.id,
             time: 60000 
@@ -115,37 +117,32 @@ function saveMarket() {
             if (i.customId === 'select_pokemon') {
                 const p = pokemonList[parseInt(i.values[0])];
                 
-                // --- HỆ THỐNG TÍNH CHỈ SỐ GIẢ LẬP THEO LEVEL ---
+                // --- CÔNG THỨC CHỈ SỐ CHI TIẾT ---
                 const hp = 100 + (p.level * 10) + (p.shiny ? 50 : 0);
-                const dame = 10 + (p.level * 5) + (p.shiny ? 20 : 0);
-                const def = 5 + (p.level * 3);
-                const speed = 10 + (p.level * 2);
-                const catchDate = p.date || new Date().toLocaleDateString('vi-VN');
+                const atk = 10 + (p.level * 5) + (p.shiny ? 20 : 0);
+                const def = 8 + (p.level * 4);
+                const spd = 12 + (p.level * 3);
+
+                // Tạo thanh tiến trình giả cho đẹp (Stats Bar)
+                const createBar = (val, max) => {
+                    const length = 10;
+                    const filled = Math.round((val / max) * length);
+                    return "🟩".repeat(filled) + "⬜".repeat(length - filled);
+                };
 
                 const detailEmbed = new EmbedBuilder()
                     .setTitle(`${p.shiny ? '✨ SHINY' : '🐾'} ${p.name.toUpperCase()}`)
                     .setColor(p.shiny ? '#f1c40f' : '#2ecc71')
+                    .setThumbnail(message.author.displayAvatarURL())
                     .addFields(
-                        { name: '📊 Cấp độ', value: `\`Lvl ${p.level}\``, inline: true },
-                        { name: '📅 Ngày bắt', value: `\`${catchDate}\``, inline: true },
-                        { name: '💎 Loại', value: `\`${p.shiny ? 'Cực hiếm' : 'Thường'}\``, inline: true },
-                        // Phần Dame, HP ở đây:
-                        { name: '❤️ Máu (HP)', value: `\`${hp}\``, inline: true },
-                        { name: '⚔️ Tấn công (ATK)', value: `\`${dame}\``, inline: true },
-                        { name: '🛡️ Phòng thủ (DEF)', value: `\`${def}\``, inline: true },
-                        { name: '⚡ Tốc độ (SPD)', value: `\`${speed}\``, inline: true }
+                        { name: '📊 THÔNG TIN', value: `🧬 **Cấp độ:** \`Lvl ${p.level}\`\n📅 **Ngày bắt:** \`${p.date || p.catchDate || 'Mới'}\`\n💎 **Loại:** \`${p.shiny ? 'Siêu hiếm' : 'Thường'}\``, inline: false },
+                        { name: `❤️ Máu: ${hp}`, value: `\`${createBar(hp, 1500)}\``, inline: true },
+                        { name: `⚔️ Tấn công: ${atk}`, value: `\`${createBar(atk, 800)}\``, inline: true },
+                        { name: `🛡️ Phòng thủ: ${def}`, value: `\`${createBar(def, 600)}\``, inline: true },
+                        { name: `⚡ Tốc độ: ${spd}`, value: `\`${createBar(spd, 500)}\``, inline: true }
                     )
-                    .setFooter({ text: "Sức mạnh tỉ lệ thuận với Cấp độ của Pokemon!" });
-
-                try {
-                    const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${p.name.toLowerCase()}`);
-                    const spriteUrl = p.shiny 
-                        ? res.data.sprites.other['official-artwork'].front_shiny 
-                        : res.data.sprites.other['official-artwork'].front_default;
-                    if (spriteUrl) detailEmbed.setImage(spriteUrl);
-                } catch (e) {
-                    detailEmbed.setDescription("⚠️ _Lỗi: Không tải được ảnh_");
-                }
+                    .setImage(`https://img.pokemondb.net/artwork/large/${p.name.toLowerCase()}.jpg`) // Ảnh xịn hơn
+                    .setFooter({ text: "Mẹo: Pokémon Shiny có chỉ số cao hơn hàng thường!" });
 
                 await i.update({ embeds: [detailEmbed], components: [row] });
             }

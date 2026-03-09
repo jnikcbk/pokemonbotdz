@@ -9,7 +9,38 @@ const client = new Client({
         GatewayIntentBits.MessageContent 
     ] 
 });
+const regions = [
+    { name: "Kanto", champ: "Blue", cpoke: "Blastoise", elite: "Lance", epoke: "Dragonite", start: 10 },
+    { name: "Johto", champ: "Red", cpoke: "Pikachu", elite: "Karen", epoke: "Umbreon", start: 110 },
+    { name: "Hoenn", champ: "Steven", cpoke: "Metagross", elite: "Drake", epoke: "Salamence", start: 210 },
+    { name: "Sinnoh", champ: "Cynthia", cpoke: "Garchomp", elite: "Lucian", epoke: "Alakazam", start: 310 },
+    { name: "Unova", champ: "Iris", cpoke: "Haxorus", elite: "Shauntal", epoke: "Chandelure", start: 410 },
+    { name: "Kalos", champ: "Diantha", cpoke: "Gardevoir", elite: "Malva", epoke: "Pyroar", start: 510 },
+    { name: "Alola", champ: "Kukui", cpoke: "Incineroar", elite: "Hala", epoke: "Crabominable", start: 610 },
+    { name: "Galar", champ: "Leon", cpoke: "Charizard", elite: "Raihan", epoke: "Duraludon", start: 710 },
+    { name: "Paldea", champ: "Geeta", cpoke: "Glimmora", elite: "Hassel", epoke: "Baxcalibur", start: 810 }
+];
 
+const gymThemes = ["Đá", "Nước", "Điện", "Cỏ", "Độc", "Tâm Linh", "Lửa", "Đất", "Băng", "Rồng", "Thép", "Côn Trùng", "Ma", "Đấu Sĩ", "Bay", "Tiên", "Bóng Tối", "Thường"];
+const gymData = [];
+
+regions.forEach((reg) => {
+    let themes = [...gymThemes].sort(() => 0.5 - Math.random());
+    for (let i = 1; i <= 8; i++) {
+        gymData.push({
+            id: gymData.length + 1,
+            region: reg.name,
+            name: `Hội Quán ${themes[i-1]}`,
+            leader: `Thủ Lĩnh ${reg.name} #${i}`,
+            poke: "Eevee",
+            lv: reg.start + (i * 10),
+            reward: (reg.start + i * 10) * 150,
+            type: "GYM"
+        });
+    }
+    gymData.push({ id: gymData.length + 1, region: reg.name, name: `Điện Thờ Tứ Hoàng`, leader: `Elite ${reg.elite}`, poke: reg.epoke, lv: reg.start + 95, reward: (reg.start + 95) * 400, type: "ELITE" });
+    gymData.push({ id: gymData.length + 1, region: reg.name, name: `Đấu Trường Vô Địch`, leader: `CHAMPION ${reg.champ}`, poke: reg.cpoke, lv: reg.start + 115, reward: (reg.start + 115) * 800, type: "CHAMP" });
+});
 // --- PHẦN QUAN TRỌNG: ĐỌC DỮ LIỆU TỪ FILE ---
 let db = {};
 const DB_PATH = './db.json';
@@ -201,48 +232,59 @@ function saveMarket() {
 
         return message.reply({ embeds: [allShinyEmbed] });
     }
-  // ================= [ LỆNH !PHELP - KHỚP 100% CODE HIỆN TẠI ] =================
-    if (command === 'phelp' || command === 'help') {
+  // ================= [ LỆNH !PHELP - CẬP NHẬT HỆ THỐNG HỘI QUÁN ] =================
+    if (command === 'phelp' {
         const helpEmbed = new EmbedBuilder()
-            .setTitle('🎮 POKÉMON WORLD - DANH SÁCH LỆNH')
-            .setColor('#3498db')
-            .setThumbnail('https://i.imgur.com/vHdfZfC.png')
-            .setDescription('Chào mừng HLV! Dưới đây là các lệnh đang hoạt động trên hệ thống của ông:')
+            .setTitle('🎮 POKÉMON WORLD - TRUNG TÂM ĐIỀU HÀNH')
+            .setColor('#f1c40f')
+            .setThumbnail('https://i.imgur.com/G9L6RGo.gif')
+            .setDescription('Chào mừng HLV! Dưới đây là danh sách các tính năng đã được nâng cấp, bao gồm hệ thống **90 Hội Quán (9 Gen)**.')
             .addFields(
+                { 
+                    name: '🏟️ HÀNH TRÌNH HỘI QUÁN (90 BẬC)', 
+                    value: [
+                        '`!hoiquan`: Xem lộ trình Gen 1 (Kanto).',
+                        '`!hoiquan [1-9]`: Xem danh sách Gym & Champion từng Gen.',
+                        '`!hoiquan [ID] [tên_pk]`: Thách đấu Hội quán (Ví dụ: `!hoiquan 09 pikachu`).',
+                        '*Vượt qua 10 bậc mỗi vùng để trở thành Champion!*'
+                    ].join('\n')
+                },
                 { 
                     name: '🐾 SĂN BẮT & QUẢN LÝ', 
                     value: [
-                        '`!pkauto`: Bật/Tắt máy dò Pokémon tự động (Admin).',
                         '`!bat [tên]`: Thu phục Pokémon đang xuất hiện.',
-                        '`!hop`: Xem túi đồ, số dư và danh sách Pokémon của ông.',
-                        '`!pkshiny`: Xem bảng vàng Pokémon Shiny toàn server.'
-                    ].join('\n')
+                        '`!hop`: Xem túi đồ, số dư, huy chương và Pokémon.',
+                        '`!train [tên]`: Huấn luyện tăng cấp (Dùng để leo Gym).',
+                        '`!ev [tên]`: Tiến hóa Pokémon khi đủ cấp độ.'
+                    ].join('\n'),
+                    inline: false
                 },
                 { 
-                    name: '🧬 PHÁT TRIỂN POKÉMON', 
+                    name: '🕶️ THƯƠNG MẠI', 
                     value: [
-                        '`!train [tên]`: Huấn luyện tăng cấp cho Pokémon.',
-                        '`!ev [tên]`: Tiến hóa Pokémon khi đạt Level 30+.'
-                    ].join('\n')
+                        '`!choden`: Ghé thăm Chợ Đen của Admin.',
+                        '`!mua [mã_số]`: Mua Pokémon hiếm bằng xu.'
+                    ].join('\n'),
+                    inline: true
                 },
                 { 
-                    name: '🕶️ CHỢ ĐEN (BLACK MARKET)', 
+                    name: '📊 THỐNG KÊ', 
                     value: [
-                        '`!choden`: Xem danh sách Pokémon Admin đang rao bán.',
-                        '`!mua [mã_số]`: Mua Pokémon từ Chợ Đen bằng xu.'
-                    ].join('\n')
+                        '`!pkshiny`: Bảng vàng Pokémon Shiny.',
+                        '`!top`: Xem bảng xếp hạng đại gia.'
+                    ].join('\n'),
+                    inline: true
                 },
                 { 
-                    name: '🛡️ LỆNH ADMIN', 
+                    name: '🛠️ QUẢN TRỊ (ADMIN)', 
                     value: [
-                        '`!adsale [tên] [giá] [lvl] [shiny]`: Treo hàng lên chợ.',
-                        '`!addpk @user [tên] [lvl] [shiny]`: Tặng Pokémon cho người chơi.',
-                        '`!addxuvang @user [số_tiền]`: Cấp thêm xu cho người chơi.',
-                        '`!adclear`: Dọn sạch hàng trên Chợ Đen.'
+                        '`!pkauto`: Bật/Tắt máy dò Pokémon.',
+                        '`!addpk`, `!addxuvang`, `!adsale`: Quản lý tài nguyên.'
                     ].join('\n')
                 }
             )
-            .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
+            .setImage('https://i.imgur.com/vHdfZfC.png') // Banner trang trí phía dưới
+            .setFooter({ text: `HLV: ${message.author.username} • Chúc ông săn được nhiều Shiny!`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
 
         return message.reply({ embeds: [helpEmbed] });
@@ -845,6 +887,81 @@ if (command === 'bat' || command === 'batpokemon') {
         } catch (e) {
             message.reply("❌ Lỗi khi lấy danh sách Pokémon!");
         }
+    }
+    // ================= [ LỆNH !HOIQUAN - 9 GEN x 10 BẬC ] =================
+    if (command === 'hoiquan' || command === 'gym') {
+        const userData = db[userId];
+        const arg1 = args[0]; 
+        const myPokeName = args.slice(1).join(" ").toLowerCase();
+
+        // 1. HIỂN THỊ DANH SÁCH THEO GEN (Ví dụ: !hoiquan 1)
+        if (!arg1 || (parseInt(arg1) <= 9 && !myPokeName)) {
+            const genIdx = (parseInt(arg1) || 1) - 1;
+            const region = regions[genIdx];
+            const currentGyms = gymData.slice(genIdx * 10, genIdx * 10 + 10);
+
+            const listEmbed = new EmbedBuilder()
+                .setTitle(`🗺️ LỘ TRÌNH CHINH PHỤC VÙNG ${region.name.toUpperCase()}`)
+                .setColor('#f1c40f')
+                .setThumbnail('https://i.imgur.com/G9L6RGo.gif')
+                .setDescription(`Mỗi vùng có 10 thử thách từ yếu đến mạnh.\nĐánh bại **Champion** để nhận thưởng lớn!\n\n**Cú pháp đánh:** \`!hoiquan [ID] [Tên_Pokemon_Của_Ông]\``)
+                .addFields({
+                    name: `Danh sách bậc thềm sức mạnh (Gen ${genIdx + 1}):`,
+                    value: currentGyms.map(g => {
+                        let icon = g.type === 'CHAMP' ? '👑' : (g.type === 'ELITE' ? '🔥' : '🛡️');
+                        return `\`ID: ${g.id.toString().padStart(2, '0')}\` ${icon} **${g.name}** - Lv.${g.lv}`;
+                    }).join('\n')
+                })
+                .setFooter({ text: `Xem vùng khác: !hoiquan [1-9] | Ví dụ: !hoiquan 2` });
+
+            return message.reply({ embeds: [listEmbed] });
+        }
+
+        // 2. LOGIC CHIẾN ĐẤU (Ví dụ: !hoiquan 1 pikachu)
+        const gymId = parseInt(arg1);
+        const target = gymData.find(g => g.id === gymId);
+        
+        if (!target) return message.reply("❌ ID Hội Quán không tồn tại! Gõ `!hoiquan` để xem danh sách.");
+        if (!myPokeName) return message.reply(`📝 Ông định dùng con nào? Cú pháp: \`!hoiquan ${gymId} [tên_pokemon]\``);
+
+        const myIdx = userData.hop.findIndex(p => p.name.toLowerCase() === myPokeName);
+        if (myIdx === -1) return message.reply(`❌ Ông không sở hữu con **${myPokeName.toUpperCase()}** nào trong túi!`);
+
+        const myPoke = userData.hop[myIdx];
+        
+        // Tính toán lực chiến (Lv + Random + Bonus Shiny)
+        const myPower = myPoke.level + Math.floor(Math.random() * 30) + (myPoke.shiny ? 40 : 0);
+        const enemyPower = target.lv + Math.floor(Math.random() * 20);
+
+        const battleEmbed = new EmbedBuilder()
+            .setTitle(`${target.type === 'CHAMP' ? '🏆 TRẬN CHIẾN CUỐI CÙNG' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
+            .setDescription(`**${message.author.username}** đối đầu với **${target.leader}**!`)
+            .addFields(
+                { name: `🔵 BẠN: ${myPoke.name.toUpperCase()}`, value: `💪 Lực chiến: \`${myPower}\``, inline: true },
+                { name: 'VS', value: '⚡', inline: true },
+                { name: `🔴 ĐỐI THỦ: ${target.leader}`, value: `💪 Lực chiến: \`${enemyPower}\``, inline: true }
+            )
+            .setThumbnail(`https://img.pokemondb.net/artwork/large/${target.poke.toLowerCase()}.jpg`)
+            .setTimestamp();
+
+        if (myPower >= enemyPower) {
+            // Thắng
+            userData.money += target.reward;
+            saveDB();
+
+            battleEmbed.setColor('#2ecc71').addFields({ 
+                name: '🏆 KẾT QUẢ: THẮNG LỢI!', 
+                value: `Ông đã vượt qua **${target.name}**!\n💰 Tiền thưởng: \`+${target.reward.toLocaleString()} xu\`` 
+            });
+        } else {
+            // Thua
+            battleEmbed.setColor('#e74c3c').addFields({ 
+                name: '💀 KẾT QUẢ: THẤT BẠI!', 
+                value: `Sức mạnh của **${target.poke}** quá lớn. Hãy dùng lệnh \`!train\` để mạnh hơn!` 
+            });
+        }
+
+        return message.reply({ embeds: [battleEmbed] });
     }
     if (command === 'addpk') {
     if (!message.member.permissions.has("ManageMessages")) return message.reply("Cút! Lệnh này chỉ dành cho Admin.");

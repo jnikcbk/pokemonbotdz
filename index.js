@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');;
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const axios = require('axios');
 const fs = require('fs'); // <--- PHẢI CÓ CÁI NÀY ĐỂ LƯU FILE
 
@@ -67,6 +67,79 @@ if (fs.existsSync(MARKET_PATH)) {
 function saveMarket() {
     fs.writeFileSync(MARKET_PATH, JSON.stringify(market, null, 4));
 }
+    // ================= [ LỆNH !HOP CHI TIẾT - CÓ MENU CHỌN ] =================
+    if (command === 'hop' || command === 'bag') {
+        if (!db[userId] || !db[userId].hop || db[userId].hop.length === 0) {
+            return message.reply("🎒 Túi đồ trống rỗng, đi bắt Pokémon đi đã ông ơi!");
+        }
+
+        const pokemonList = db[userId].hop;
+
+        // 1. Tạo Embed danh sách tổng quát
+        const mainEmbed = new EmbedBuilder()
+            .setTitle(`🎒 TÚI ĐỒ CỦA ${message.author.username.toUpperCase()}`)
+            .setColor('#3498db')
+            .setDescription(`💰 **Số dư:** \`${db[userId].money.toLocaleString()} xu\`\n\n**Danh sách Pokémon:**\n${pokemonList.map((p, i) => `\`${i + 1}.\` ${p.shiny ? '✨' : '🐾'} **${p.name.toUpperCase()}** (Lvl ${p.level})`).slice(0, 25).join('\n')}`)
+            .setFooter({ text: "Hãy chọn Pokémon bên dưới để xem chi tiết 👇" });
+
+        // 2. Tạo Menu chọn Pokémon (Tối đa 25 con đầu tiên để tránh lỗi Discord)
+        const selectMenu = new StringSelectMenuBuilder()
+            .setCustomId('select_pokemon')
+            .setPlaceholder('Bấm vào đây để xem chi tiết một con...')
+            .addOptions(pokemonList.slice(0, 25).map((p, i) => ({
+                label: `${i + 1}. ${p.name.toUpperCase()}`,
+                description: `Level: ${p.level} | ${p.shiny ? 'Hàng Shiny ✨' : 'Hàng thường'}`,
+                value: i.toString(),
+                emoji: p.shiny ? '✨' : '🐾'
+            })));
+
+        const row = new ActionRowBuilder().addComponents(selectMenu);
+
+        const curMessage = await message.reply({
+            embeds: [mainEmbed],
+            components: [row]
+        });
+
+        // 3. Bộ lắng nghe khi người dùng chọn trong Menu
+        const collector = curMessage.createMessageComponentCollector({
+            filter: (i) => i.user.id === message.author.id,
+            time: 60000
+        });
+
+        collector.on('collect', async (i) => {
+            if (i.customId === 'select_pokemon') {
+                const selectedIdx = parseInt(i.values[0]);
+                const p = pokemonList[selectedIdx];
+
+                const detailEmbed = new EmbedBuilder()
+                    .setTitle(`${p.shiny ? '✨' : '🐾'} CHI TIẾT: ${p.name.toUpperCase()}`)
+                    .setColor(p.shiny ? '#f1c40f' : '#2ecc71')
+                    .addFields(
+                        { name: '📊 Cấp độ', value: `\`Lvl ${p.level}\``, inline: true },
+                        { name: '📅 Ngày bắt', value: `\`${p.date || 'Không rõ'}\``, inline: true },
+                        { name: '💎 Phẩm chất', value: `\`${p.shiny ? 'SHINY ✨' : 'Thường'}\``, inline: true }
+                    )
+                    .setFooter({ text: "Ông có thể chọn con khác trong menu bên dưới." });
+
+                // Gọi API lấy ảnh con được chọn
+                try {
+                    const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${p.name.toLowerCase()}`);
+                    const spriteUrl = p.shiny 
+                        ? res.data.sprites.other['official-artwork'].front_shiny 
+                        : res.data.sprites.other['official-artwork'].front_default;
+                    detailEmbed.setImage(spriteUrl);
+                } catch (e) {
+                    detailEmbed.setDescription("_Lỗi: Không tải được ảnh từ PokeAPI_");
+                }
+
+                await i.update({ embeds: [detailEmbed], components: [row] });
+            }
+        });
+
+        collector.on('end', () => {
+            curMessage.edit({ components: [] }).catch(() => {});
+        });
+    }
     // ================= [ LỆNH !PKSHINY - BẢNG VÀNG SHINY TOÀN SERVER ] =================
     if (command === 'pkshiny' || command === 'allshiny') {
         let allShiny = [];

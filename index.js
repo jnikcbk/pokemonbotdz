@@ -924,12 +924,23 @@ if (command === 'bat' || command === 'batpokemon') {
         let myBasePower = Math.floor(Math.pow(myPoke.level, 3.5));
         if (myPoke.shiny) myBasePower *= 1.5; // Shiny mạnh gấp rưỡi
 
+        // 1. Tính Sức mạnh cơ bản của người chơi (Dùng lũy thừa để chạm mốc 10 triệu)
+        // Công thức: Level ^ 2.35 (Level 100 ~ 500k | Level 500 ~ 22 triệu)
+        let myBasePower = Math.floor(Math.pow(myPoke.level, 2.35) * 10); 
+        
+        // Bonus cho Shiny (Buff 50% sức mạnh tổng)
+        if (myPoke.shiny) myBasePower = Math.floor(myBasePower * 1.5);
+
+        // 2. Tính Sức mạnh thực tế trận đấu (Có biến thiên Random 20%)
         const myPower = myBasePower + Math.floor(Math.random() * (myBasePower * 0.2));
-        const enemyPower = target.lv; // Lấy mốc LC khổng lồ đã cài đặt ở gymData
-// Trong lệnh !hoiquan, hãy sửa dòng myPower thành:
-const myPower = (myPoke.level * 1000) + Math.floor(Math.random() * 5000) + (myPoke.shiny ? 50000 : 0);
+        
+        // 3. Lấy LC khổng lồ của Boss
+        const enemyPower = target.lv; 
+
+        // 4. Hiển thị Embed (Đoạn này của ông rất đẹp, giữ nguyên)
         const battleEmbed = new EmbedBuilder()
             .setTitle(`${target.type === 'CHAMP' ? '🏆 ĐẠI CHIẾN VÔ ĐỊCH' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
+            .setColor(myPower >= enemyPower ? '#2ecc71' : '#e74c3c')
             .setDescription(`**${message.author.username}** đối đầu với **${target.leader}**!`)
             .addFields(
                 { name: `🔵 BẠN: ${myPoke.name.toUpperCase()} (Lv.${myPoke.level})`, value: `💪 LC: \`${myPower.toLocaleString()}\``, inline: true },
@@ -938,7 +949,6 @@ const myPower = (myPoke.level * 1000) + Math.floor(Math.random() * 5000) + (myPo
             )
             .setThumbnail(`https://img.pokemondb.net/artwork/large/${target.poke.toLowerCase()}.jpg`)
             .setTimestamp();
-
         // XỬ LÝ KẾT QUẢ
         if (myPower >= enemyPower) {
             userData.money += target.reward;
@@ -951,7 +961,7 @@ const myPower = (myPoke.level * 1000) + Math.floor(Math.random() * 5000) + (myPo
         } else {
             battleEmbed.setColor('#e74c3c').addFields({ 
                 name: '💀 KẾT QUẢ: THẤT BẠI!', 
-                value: `Ông còn thiếu khoảng \`${(enemyPower - myPower).toLocaleString()}\` sức mạnh nữa. Hãy tiếp tục \`!train\`!` 
+                value: `mày còn thiếu khoảng \`${(enemyPower - myPower).toLocaleString()}\` sức mạnh nữa. Hãy tiếp tục \`!train\`!` 
             });
         }
 

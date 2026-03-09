@@ -147,7 +147,7 @@ function saveMarket() {
             )
             .addFields({ 
                 name: '💡 Mẹo Nhỏ', 
-                value: 'Pokémon **Shiny ✨** có giá trị rất cao trên Chợ Đen và hiển thị lấp lánh trong túi đồ!' 
+                value: 'Pokémon **Shiny ✨** có giá trị rất cao trên Chợ Đen và hiển thị lấp lánh trong túi đồ và gõ !pkshiny để biết thêm trong server có bao nhiêu pokemon shiny đã được bắt!' 
             })
             .setFooter({ text: `Yêu cầu bởi ${message.author.username}`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
@@ -227,24 +227,34 @@ function saveMarket() {
             }
         }, 20000); // <--- Đã chỉnh chuẩn 20 giây (20000ms)
     }
-    // ================= [ LỆNH ADMIN: TREO BÁN ĐỒ CHỢ ĐEN ] =================
+    // ================= [ LỆNH ADMIN: TREO BÁN ĐỒ CHỢ ĐEN - FULL CHI TIẾT ] =================
     if (command === 'adsale') {
-        // Chỉ Admin (có quyền Quản lý tin nhắn) mới được dùng
-        if (!message.member.permissions.has("ManageMessages")) return message.reply("❌ Cút! Chợ Đen chỉ dành cho Trùm (Admin) treo hàng.");
+        // 1. Kiểm tra quyền Admin
+        if (!message.member.permissions.has("ManageMessages")) {
+            return message.reply("❌ Cút! Chợ Đen chỉ dành cho Trùm (Admin) treo hàng.");
+        }
 
         const pokeNameInput = args[0]?.toLowerCase();
         const price = parseInt(args[1]);
         const level = parseInt(args[2]) || 1;
-        const isShiny = args[3]?.toLowerCase() === 'shiny';
+        const typeInput = args[3]?.toLowerCase(); 
+        const isShiny = typeInput === 'shiny'; // Kiểm tra xem có gõ chữ 'shiny' không
 
         if (!pokeNameInput || isNaN(price)) {
-            return message.reply("📝 Cú pháp: `!adsale [tên] [giá] [level] [shiny/thuong]`\nVí dụ: `!adsale mewtwo 100000 500 shiny` ");
+            return message.reply("📝 **Cú pháp:** `!adsale [tên] [giá] [level] [shiny/thuong]`\nVí dụ: `!adsale mewtwo 100000 500 shiny` ");
         }
 
         try {
+            // Gọi API để lấy thông tin chi tiết và ảnh
             const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${pokeNameInput}`);
             const realName = res.data.name;
+            const pokeType = res.data.types.map(t => t.type.name).join(", ").toUpperCase();
             const saleId = Math.floor(Math.random() * 9000) + 1000;
+
+            // Lấy ảnh đúng loại (Shiny hoặc Thường) để hiển thị trong Embed
+            const spriteUrl = isShiny 
+                ? res.data.sprites.other['official-artwork'].front_shiny 
+                : res.data.sprites.other['official-artwork'].front_default;
 
             const newItem = {
                 saleId: saleId,
@@ -252,71 +262,144 @@ function saveMarket() {
                 price: price,
                 level: level,
                 shiny: isShiny,
+                type: pokeType,
                 seller: "HỆ THỐNG ADMIN"
             };
 
+            // Lưu vào danh sách chợ
             market.push(newItem);
             saveMarket();
 
-            message.reply(`✅ Đã treo **${isShiny ? '✨ SHINY ' : ''}${realName.toUpperCase()}** (Lvl ${level}) lên Chợ Đen với giá \`${price.toLocaleString()} xu\`. Mã: \`#${saleId}\``);
+            // Tạo Embed thông báo treo bán cực đẹp
+            const saleEmbed = new EmbedBuilder()
+                .setTitle(isShiny ? '✨ [CHỢ ĐEN] NIÊM YẾT HÀNG HIẾM ✨' : '📦 [CHỢ ĐEN] NIÊM YẾT HÀNG MỚI')
+                .setColor(isShiny ? '#f1c40f' : '#2ecc71')
+                .setThumbnail(isShiny ? 'https://i.imgur.com/vHdfZfC.png' : null)
+                .setDescription(`Admin vừa đưa một mặt hàng mới lên sàn giao dịch!`)
+                .addFields(
+                    { name: '👾 Pokémon', value: `**${realName.toUpperCase()}**`, inline: true },
+                    { name: '🆔 Mã số', value: `\`#${saleId}\``, inline: true },
+                    { name: '📊 Cấp độ', value: `\`Lvl ${level}\``, inline: true },
+                    { name: '🧬 Hệ', value: `\`${pokeType}\``, inline: true },
+                    { name: '💎 Loại', value: `\`${isShiny ? 'SHINY ✨' : 'THÔNG THƯỜNG'}\``, inline: true },
+                    { name: '💰 Giá bán', value: `**${price.toLocaleString()} xu**`, inline: true }
+                )
+                .setImage(spriteUrl) // Hiển thị hình ảnh Pokémon ngay khi treo bán
+                .setFooter({ text: `Dùng !mua ${saleId} để sở hữu ngay!` })
+                .setTimestamp();
+
+            message.channel.send({ embeds: [saleEmbed] });
+
         } catch (e) {
-            message.reply("❌ Tên Pokemon không đúng hoặc lỗi kết nối API!");
+            console.log(e);
+            message.reply("❌ Không tìm thấy Pokémon này! Kiểm tra lại tên nhé ông.");
         }
     }
-
-    // ================= [ LỆNH MEMBER: XEM CHỢ ĐEN ] =================
+    // ================= [ LỆNH MEMBER: XEM CHỢ ĐEN - GIAO DIỆN VIP ] =================
     if (command === 'choden' || command === 'blackmarket') {
-        if (market.length === 0) return message.reply("🛒 Chợ Đen hôm nay chưa có hàng lậu sếp ơi!");
+        if (market.length === 0) {
+            const emptyEmbed = new EmbedBuilder()
+                .setTitle('🕶️ THỊ TRƯỜNG CHỢ ĐEN')
+                .setColor('#2c3e50')
+                .setDescription('🛒 *Hiện tại không có món hàng lậu nào được niêm yết. Quay lại sau nhé sếp!*')
+                .setTimestamp();
+            return message.reply({ embeds: [emptyEmbed] });
+        }
 
+        // Tạo danh sách hàng hóa đẹp mắt
         const marketList = market.map((item) => {
-            return `\`#${item.saleId}\` ┃ ${item.shiny ? '✨' : '🐾'} **${item.name.toUpperCase()}** \`Lvl ${item.level}\`\n💰 Giá: \`${item.price.toLocaleString()} xu\`\n------------------`;
+            const shinyTag = item.shiny ? "✨ **[SHINY]** " : "🐾 **[THƯỜNG]** ";
+            const priceTag = `💰 Giá: \`${item.price.toLocaleString()}\` xu`;
+            const stats = `📊 Cấp độ: \`Lvl ${item.level}\` ┃ Mã: \`#${item.saleId}\``;
+            
+            return `${shinyTag}**${item.name.toUpperCase()}**\n╰ ${stats}\n╰ ${priceTag}\n──────────────────`;
         }).join("\n");
 
         const marketEmbed = new EmbedBuilder()
-            .setTitle('🕶️ THỊ TRƯỜNG CHỢ ĐEN (ADMIN ONLY SALE)')
-            .setColor('#2c3e50')
-            .setDescription(`Chào mừng các HLV đến với nơi giao dịch hàng lậu!\n\n${marketList}`)
-            .setFooter({ text: 'Dùng !mua [mã_số] để chốt đơn' })
+            .setAuthor({ name: 'HỆ THỐNG GIAO DỊCH NGẦM', iconURL: 'https://i.imgur.com/vHdfZfC.png' })
+            .setTitle('🕶️ DANH SÁCH HÀNG LẬU ĐANG BÀY BÁN')
+            .setColor('#2f3136') // Màu tối đặc trưng chợ đen
+            .setThumbnail('https://i.imgur.com/6S3Yt6p.png') // Icon túi tiền hoặc pokemon
+            .setDescription(`*Chào mừng HLV đến với nơi giao dịch của các Trùm. Hãy chọn món hàng ưng ý và chốt đơn nhanh kẻo lỡ!*\n\n${marketList}`)
+            .addFields({ 
+                name: '💡 Hướng dẫn mua hàng', 
+                value: 'Gõ `!mua [mã_số]` (Ví dụ: `!mua 1234`) để thanh toán và nhận Pokémon ngay lập tức!' 
+            })
+            .setFooter({ text: `Tổng cộng: ${market.length} mặt hàng đang chờ chủ mới` })
             .setTimestamp();
 
         message.channel.send({ embeds: [marketEmbed] });
     }
 
-    // ================= [ LỆNH MEMBER: MUA HÀNG ] =================
-    if (command === 'mua') {
+    // ================= [ LỆNH MEMBER: MUA HÀNG - GIAO DIỆN CHỐT ĐƠN VIP ] =================
+    if (command === 'mua' || command === 'buy') {
         const saleId = parseInt(args[0]);
-        if (!saleId) return message.reply("Nhập mã số món hàng! (Ví dụ: `!mua 1234`) ");
+        if (!saleId) return message.reply("📝 Nhập mã số món hàng ông muốn mua! (Ví dụ: `!mua 1234`) ");
 
         const itemIdx = market.findIndex(i => i.saleId === saleId);
-        if (itemIdx === -1) return message.reply("❌ Mã hàng này không tồn tại!");
+        if (itemIdx === -1) return message.reply("❌ Mã hàng này không tồn tại hoặc đã có đại gia khác hốt mất rồi!");
 
         const item = market[itemIdx];
 
-        // Khởi tạo DB cho người mua nếu chưa có
+        // Khởi tạo dữ liệu người mua nếu chưa có
         if (!db[userId]) db[userId] = { money: 5000, hop: [], catchCount: 0 };
 
+        // Kiểm tra số dư
         if (db[userId].money < item.price) {
-            return message.reply(`💸 Ông không đủ tiền! Cần \`${item.price.toLocaleString()} xu\`.`);
+            return message.reply(`💸 **Nghèo quá sếp ơi!** Ông cần thêm \`${(item.price - db[userId].money).toLocaleString()} xu\` nữa mới đủ chốt con này.`);
         }
 
-        // Thực hiện giao dịch
-        db[userId].money -= item.price; 
-        db[userId].hop.push({
-            name: item.name,
-            level: item.level,
-            shiny: item.shiny,
-            date: new Date().toLocaleDateString('vi-VN')
-        });
+        try {
+            // Thực hiện trừ tiền và thêm vào túi
+            db[userId].money -= item.price; 
+            
+            const newPokemon = {
+                name: item.name,
+                level: item.level,
+                shiny: item.shiny || false,
+                type: item.type || "Chưa rõ",
+                date: new Date().toLocaleDateString('vi-VN')
+            };
+            
+            db[userId].hop.push(newPokemon);
 
-        // Xóa khỏi chợ đen
-        market.splice(itemIdx, 1);
-        
-        saveDB();    // Lưu tiền/túi người mua
-        saveMarket(); // Lưu trạng thái chợ
-        
-        message.reply(`🎉 Chúc mừng ông đã tậu thành công **${item.shiny ? '✨ ' : ''}${item.name.toUpperCase()}** (Lvl ${item.level}) từ Chợ Đen!`);
+            // Xóa khỏi danh sách chợ đen
+            market.splice(itemIdx, 1);
+            
+            // Lưu dữ liệu vào cả 2 file
+            saveDB();    
+            saveMarket();
+
+            // Lấy ảnh Pokemon để hiển thị trong thông báo chúc mừng
+            const res = await axios.get(`https://pokeapi.co/api/v2/pokemon/${item.name.toLowerCase()}`);
+            const spriteUrl = item.shiny 
+                ? res.data.sprites.other['official-artwork'].front_shiny 
+                : res.data.sprites.other['official-artwork'].front_default;
+
+            // Thiết kế Embed chúc mừng
+            const successEmbed = new EmbedBuilder()
+                .setTitle(item.shiny ? '🌟 SIÊU PHẨM ĐÃ CÓ CHỦ! 🌟' : '✅ GIAO DỊCH THÀNH CÔNG!')
+                .setColor(item.shiny ? '#f1c40f' : '#2ecc71')
+                .setThumbnail(item.shiny ? 'https://i.imgur.com/vHdfZfC.png' : 'https://i.imgur.com/6S3Yt6p.png')
+                .setDescription(`Chúc mừng **${message.author.username}** vừa sở hữu một Pokémon cực chất từ **Chợ Đen**!`)
+                .addFields(
+                    { name: '👾 Pokémon', value: `**${item.name.toUpperCase()}**`, inline: true },
+                    { name: '📊 Cấp độ', value: `\`Lvl ${item.level}\``, inline: true },
+                    { name: '💎 Loại', value: `\`${item.shiny ? 'SHINY ✨' : 'Thường'}\``, inline: true },
+                    { name: '💰 Tổng chi', value: `\`-${item.price.toLocaleString()} xu\``, inline: true },
+                    { name: '💳 Số dư còn lại', value: `\`${db[userId].money.toLocaleString()} xu\``, inline: true }
+                )
+                .setImage(spriteUrl)
+                .setFooter({ text: 'Kiểm tra ngay trong !hop của ông nhé!' })
+                .setTimestamp();
+
+            return message.channel.send({ content: `<@${userId}>`, embeds: [successEmbed] });
+
+        } catch (e) {
+            console.log(e);
+            message.reply("🎉 Giao dịch thành công! (Nhưng không lấy được ảnh Pokémon từ API)");
+        }
     }
-
     // ================= [ LỆNH ADMIN: DỌA CHỢ (XÓA HÀNG) ] =================
     if (command === 'adclear') {
         if (!message.member.permissions.has("ManageMessages")) return;

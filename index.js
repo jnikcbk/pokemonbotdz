@@ -876,7 +876,7 @@ if (command === 'bat' || command === 'batpokemon') {
             message.reply("❌ Lỗi khi lấy danh sách Pokémon!");
         }
     }
-   // ================= [ LỆNH !HOIQUAN - LOGIC SỨC MẠNH KHỦNG ] =================
+   // ================= [ LỆNH !HOIQUAN - GIAO DIỆN PREMIUM ] =================
     if (command === 'hoiquan' || command === 'gym') {
         const userData = db[userId];
         const arg1 = args[0]; 
@@ -892,7 +892,7 @@ if (command === 'bat' || command === 'batpokemon') {
                 .setTitle(`🗺️ LỘ TRÌNH CHINH PHỤC VÙNG ${region.name.toUpperCase()}`)
                 .setColor('#f1c40f')
                 .setThumbnail('https://i.imgur.com/G9L6RGo.gif')
-                .setDescription(`Sức mạnh Boss tăng tiến theo cấp số nhân!\n\n**Cú pháp đánh:** \`!hoiquan [ID] [Tên_Pokemon]\``)
+                .setDescription(`Sức mạnh Boss tăng tiến theo cấp số nhân (Max 10M+ LC)!\n\n**Cú pháp đánh:** \`!hoiquan [ID] [Tên_Pokemon]\``)
                 .addFields({
                     name: `Danh sách bậc thềm sức mạnh (Gen ${genIdx + 1}):`,
                     value: currentGyms.map(g => {
@@ -900,12 +900,12 @@ if (command === 'bat' || command === 'batpokemon') {
                         return `\`ID: ${g.id.toString().padStart(2, '0')}\` ${icon} **${g.name}** - 💪 \`${g.lv.toLocaleString()}\``;
                     }).join('\n')
                 })
-                .setFooter({ text: `Xem vùng khác: !hoiquan [1-9]` });
+                .setFooter({ text: `Xem vùng khác: !hoiquan [1-9]`, iconURL: message.author.displayAvatarURL() });
 
             return message.reply({ embeds: [listEmbed] });
         }
 
-        // 2. LOGIC CHIẾN ĐẤU CÂN BẰNG SỨC MẠNH 10 TRIỆU
+        // 2. LOGIC CHIẾN ĐẤU & XỬ LÝ LỰC CHIẾN
         const gymId = parseInt(arg1);
         const target = gymData.find(g => g.id === gymId);
         
@@ -917,52 +917,50 @@ if (command === 'bat' || command === 'batpokemon') {
 
         const myPoke = userData.hop[myIdx];
         
-        /** * TÍNH LỰC CHIẾN NGƯỜI CHƠI:
-         * Để đấu được với 10 triệu, mỗi Level của Pokemon phải đáng giá.
-         * Công thức: (Level^3.5) + Random. Level 100 sẽ có ~316k, Level 500 sẽ có ~27 triệu.
-         */
-        let myBasePower = Math.floor(Math.pow(myPoke.level, 3.5));
-        if (myPoke.shiny) myBasePower *= 1.5; // Shiny mạnh gấp rưỡi
+        // Công thức lũy thừa đạt mốc 10 triệu
+        let calcPower = Math.floor(Math.pow(myPoke.level, 2.35) * 10); 
+        if (myPoke.shiny) calcPower = Math.floor(calcPower * 1.5);
 
-        // 1. Tính Sức mạnh cơ bản của người chơi (Dùng lũy thừa để chạm mốc 10 triệu)
-        // Công thức: Level ^ 2.35 (Level 100 ~ 500k | Level 500 ~ 22 triệu)
-        let myBasePower = Math.floor(Math.pow(myPoke.level, 2.35) * 10); 
-        
-        // Bonus cho Shiny (Buff 50% sức mạnh tổng)
-        if (myPoke.shiny) myBasePower = Math.floor(myBasePower * 1.5);
+        const myPower = calcPower + Math.floor(Math.random() * (calcPower * 0.2));
+        const enemyPower = target.lv;
+        const isWin = myPower >= enemyPower;
 
-        // 2. Tính Sức mạnh thực tế trận đấu (Có biến thiên Random 20%)
-        const myPower = myBasePower + Math.floor(Math.random() * (myBasePower * 0.2));
-        
-        // 3. Lấy LC khổng lồ của Boss
-        const enemyPower = target.lv; 
+        // TẠO THANH HP GIẢ LẬP
+        const myHP = isWin ? '🟩🟩🟩🟩🟩' : '🟥🟥⬜⬜⬜';
+        const bossHP = isWin ? '🟥🟥⬜⬜⬜' : '🟩🟩🟩🟩🟩';
 
-        // 4. Hiển thị Embed (Đoạn này của ông rất đẹp, giữ nguyên)
+        // 3. THIẾT KẾ EMBED TRẬN ĐẤU ĐẸP
         const battleEmbed = new EmbedBuilder()
-            .setTitle(`${target.type === 'CHAMP' ? '🏆 ĐẠI CHIẾN VÔ ĐỊCH' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
-            .setColor(myPower >= enemyPower ? '#2ecc71' : '#e74c3c')
-            .setDescription(`**${message.author.username}** đối đầu với **${target.leader}**!`)
-            .addFields(
-                { name: `🔵 BẠN: ${myPoke.name.toUpperCase()} (Lv.${myPoke.level})`, value: `💪 LC: \`${myPower.toLocaleString()}\``, inline: true },
-                { name: 'VS', value: '⚡', inline: true },
-                { name: `🔴 ĐỐI THỦ: ${target.leader}`, value: `💪 LC: \`${enemyPower.toLocaleString()}\``, inline: true }
-            )
+            .setTitle(`${target.type === 'CHAMP' ? '👑 ĐẠI CHIẾN VÔ ĐỊCH' : '⚔️ THÁCH ĐẤU HỘI QUÁN'}`)
+            .setColor(isWin ? '#2ecc71' : '#e74c3c')
             .setThumbnail(`https://img.pokemondb.net/artwork/large/${target.poke.toLowerCase()}.jpg`)
+            .setDescription(`**HLV ${message.author.username}** đã tiến vào **${target.name}**!`)
+            .addFields(
+                { 
+                    name: `🔵 BẠN: ${myPoke.name.toUpperCase()}`, 
+                    value: `❤ HP: ${myHP}\n💪 LC: \`${myPower.toLocaleString()}\`${myPoke.shiny ? ' ✨' : ''}`, 
+                    inline: true 
+                },
+                { name: '⚡', value: 'VS', inline: true },
+                { 
+                    name: `🔴 BOSS: ${target.leader}`, 
+                    value: `❤ HP: ${bossHP}\n💪 LC: \`${enemyPower.toLocaleString()}\``, 
+                    inline: true 
+                },
+                { 
+                    name: '─── KẾT QUẢ TRẬN ĐẤU ───', 
+                    value: isWin 
+                        ? `🏆 **THẮNG LỢI!**\nÔng đã đè bẹp đối thủ và nhận được \`+${target.reward.toLocaleString()} xu\`.`
+                        : `💀 **THẤT BẠI!**\nMày còn thiếu khoảng \`${(enemyPower - myPower).toLocaleString()}\` sức mạnh nữa. Hãy tiếp tục \`!train\`!`
+                }
+            )
+            .setFooter({ text: `HLV: ${message.author.username} • Chúc may mắn lần sau!`, iconURL: message.author.displayAvatarURL() })
             .setTimestamp();
-        // XỬ LÝ KẾT QUẢ
-        if (myPower >= enemyPower) {
+
+        if (isWin) {
             userData.money += target.reward;
             saveDB();
-
-            battleEmbed.setColor('#2ecc71').addFields({ 
-                name: '🏆 KẾT QUẢ: THẮNG LỢI!', 
-                value: `Sức mạnh của ông đã đè bẹp đối thủ!\n💰 Tiền thưởng: \`+${target.reward.toLocaleString()} xu\`` 
-            });
-        } else {
-            battleEmbed.setColor('#e74c3c').addFields({ 
-                name: '💀 KẾT QUẢ: THẤT BẠI!', 
-                value: `mày còn thiếu khoảng \`${(enemyPower - myPower).toLocaleString()}\` sức mạnh nữa. Hãy tiếp tục \`!train\`!` 
-            });
+            battleEmbed.setImage('https://i.imgur.com/vHdfZfC.png'); // Hiện banner vinh danh khi thắng
         }
 
         return message.reply({ embeds: [battleEmbed] });

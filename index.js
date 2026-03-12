@@ -349,7 +349,7 @@ return message.reply({ embeds: [helpEmbed] });
         }
 
         const spawnChannel = message.channel;
-        message.reply(`🚀 **KHỞI ĐỘNG MÁY DÒ SIÊU TỐC!** Pokémon sẽ xuất hiện mỗi 20 giây tại <#${spawnChannel.id}>.`);
+        message.reply(`🚀 **KHỞI ĐỘNG MÁY DÒ SIÊU TỐC!** Pokémon sẽ xuất hiện mỗi 30 giây tại <#${spawnChannel.id}>.`);
 
         pkAuto = setInterval(async () => {
             // 1. DỌN DẸP: Xóa tin nhắn cũ ngay lập tức khi con mới xuất hiện
@@ -400,7 +400,7 @@ return message.reply({ embeds: [helpEmbed] });
             } catch (error) {
                 console.log("Lỗi máy dò: " + error.message);
             }
-        }, 20000); // 20 Giây
+        }, 30000); // 20 Giây
     }
     // ================= [ LỆNH ADMIN: TREO BÁN ĐỒ CHỢ ĐEN - FULL CHI TIẾT ] =================
     if (command === 'adsale') {
